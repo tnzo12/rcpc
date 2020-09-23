@@ -1,5 +1,5 @@
 # R CPC engine
-- This application aim to provide various clinical services utilizing the exsisting, recognized models into the real world.
+- This application aim to provide clinical services utilizing the exsisting, recognized models into the real world.
 
 - Features
 1. Web-based (R-shiny)
