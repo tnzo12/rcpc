@@ -24,7 +24,7 @@ mod_cov_abbr <- c("Postconceptual age", "Weight")
 mod_route <- c("IV", "PO", "SC")
 
 # plot option -------------------------------------------------------
-pk <- "ipred"
+pk <- "cp"
 pk_obs <- "SDC"
 pk_color <- '#FF6666'
 pk_x_label <- "Time (hours)"
@@ -37,7 +37,7 @@ pd_x_label <- "Time (hours)"
 pd_y_label <- "C-Reactive Protein Conc. (mg/L)"
 
 # model scheme image ------------------------------------------------
-scheme_image <- "http://www.turkupetcentre.net/petanalysis/pic/pk-2cm.svg"
+scheme_image <- "https://els-jbs-prod-cdn.jbs.elsevierhealth.com/cms/attachment/e9f4a16a-a113-4770-86c4-614b4895f30c/fx1.jpg"
 
 
 # Compartment designation -------------------------------------------
@@ -67,24 +67,24 @@ f <- function(){
     theta1  <- c(0.387)     # Add err PK
     theta2  <- c(log(50.9))      # V
     theta3  <- c(log(3.42))      # Cl
-    theta4  <- c(31.2)      # TM50
-    theta5  <- c(3.68)      # Hill
-    theta6  <- c(1.46)      # K growth
-    theta7  <- c(0.187)     # K death
-    theta8  <- c(1.52)      # Emax bact
-    theta9  <- c(0.304)     # EC50 bact
-    theta10 <- c(4.99)     # Gamma bact
+    theta4  <- fix(31.2)      # TM50
+    theta5  <- fix(3.68)      # Hill
+    theta6  <- fix(1.46)      # K growth
+    theta7  <- fix(0.187)     # K death
+    theta8  <- fix(1.52)      # Emax bact
+    theta9  <- fix(0.304)     # EC50 bact
+    theta10 <- fix(4.99)     # Gamma bact
     theta11 <- c(0.162)    # Add err PD
     theta12 <- c(0.274)    # Prop err PD
-    theta13 <- c(log(0.276))    # base
-    theta14 <- c(log(0.0431))   # Kout
-    theta15 <- c(1.22)     # EC50/10^3
-    theta16 <- c(0.134)    # Emax
+    theta13 <- fix(log(0.276))    # base
+    theta14 <- fix(log(0.0431))   # Kout
+    theta15 <- fix(1.22)     # EC50/10^3
+    theta16 <- fix(0.134)    # Emax
     # ETAs
-    eta1 ~ c(1.33)                     # Base
+    eta1 ~ fix(1.33)                     # Base
     eta2 + eta3 ~ c(0.194,          
                     -0.0159, 0.306) # Vd, Cl
-    eta4 + eta5 ~ c(0.521,          
+    eta4 + eta5 ~ fix(0.521,          
                     -0.435, 0.83)   # Emax, Kout
   })
   model({
