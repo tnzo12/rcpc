@@ -1,5 +1,5 @@
 # Vancomycin population pk model
-
+# Author: Sung Taewook
 # PK model description ----------------------------------------------
 des_intro <- "Vancomycin IV model for critically ill adult septic patients"
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
