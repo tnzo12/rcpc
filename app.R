@@ -13,7 +13,6 @@ library(rhandsontable)
 library(formattable)
 library(shinyWidgets)
 library(shinycssloaders)
-library(scattermore)
 
 library(plotly)
 # Server side libraries ---------------
