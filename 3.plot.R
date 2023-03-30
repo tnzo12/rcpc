@@ -23,10 +23,9 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
                    autosize = TRUE) %>% 
     add_ribbons(ymax = ~P5, ymin = ~P95, color = ~condi, opacity=0.3, showlegend = FALSE, name = "5-95th pct") %>% # 5 to 95th percentile
     add_ribbons(ymax = ~P25, ymin = ~P75, color = ~condi, opacity=0.3, showlegend = FALSE, name = "25-75th pct") %>% # 25 to 75th percentile
-    add_lines(y = ~P50, color = ~condi, showlegend = FALSE, opacity=0.3, name = "50th pct") %>% # 50th percentile line
-    add_lines(data = noiiv, x = ~Time, y = ~Estimated, color = ~condi, showlegend = FALSE, name = "Ind. pred") %>% 
-    add_text(data = noiiv, x=~Time, y=~Estimated, mode='text', text=~date,
-             textfont=list(color='#999999'), showlegend = FALSE) %>% # annotation, date
+    add_lines(y = ~P50, color = ~condi, opacity=0.3, showlegend = FALSE, name = "50th pct") %>% # 50th percentile line
+    add_text(data = noiiv, x=~Time, y=~Estimated, mode='text', text=~date, textfont=list(color='#999999'), showlegend = FALSE) %>% # annotation, date
+    add_lines(data = noiiv, x = ~Time, y = ~Estimated, color = ~condi, showlegend = FALSE, name = "Ind pred") %>% 
     add_markers(data = base::subset(fit, CMT==cmt),
                 x= ~Time, y = ~DV,
                 color = I(colr), # marker = list(color = colr),
@@ -34,7 +33,7 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
     add_segments(data = base::subset(fit, CMT==cmt),
                  x= ~Time, xend = ~Time, y = ~DV, yend = ~DV-IRES,
                  color = I(colr),# line = list(color = colr),
-                 showlegend = FALSE, name = "prediction err.") # error
+                 showlegend = FALSE, name = "prediction err") # error
 
 }
 
