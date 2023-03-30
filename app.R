@@ -11,10 +11,11 @@ library(bs4Dash)
 library(networkD3)
 library(rhandsontable)
 library(formattable)
-library(plotly)
 library(shinyWidgets)
 library(shinycssloaders)
+library(scattermore)
 
+library(plotly)
 # Server side libraries ---------------
 library(shiny)
 library(devtools)
@@ -31,6 +32,8 @@ library(rhandsontable)
 library(formattable)
 library(kableExtra)
 library(knitr)
+library(dplyr)
+library(data.table)
 
 # Visualization
 library(networkD3)
@@ -44,6 +47,7 @@ library(PreciseSums)
 # Shiny modules
 source("1.mods.R", local=TRUE)
 source("2.des.R", local=TRUE)
+source("3.plot.R", local=TRUE)
 
 # Rhandsontable css theme
 # https://handsontable.com/docs/3.0.0/tutorial-styling.html
@@ -118,11 +122,10 @@ css <- "
   display: inline-block;
   color: white;
   border-radius: 4px;
-  background-color: transparent;
+  background-color: #59626A;
 }
 
 "
-
 ui <- dashboardPage(
   
   fullscreen = TRUE,
@@ -144,7 +147,7 @@ ui <- dashboardPage(
     HTML("&nbsp;"), # spacing
     
     dropdown(
-      label = "Estimation Settings",
+      label = "Simulation Settings",
       icon = icon('cog'),
       numericInput(
         inputId = "vpc_opt",
@@ -186,8 +189,76 @@ ui <- dashboardPage(
                </i></span>")
       
       
-    )
+    ),
     
+    HTML("&nbsp;"), # spacing
+    
+    dropdown(
+      label = "Estimation",
+      icon = icon('signal'),
+      selectInput(
+        inputId = "est_method",
+        label = HTML("<span style='color:grey'><i>
+          Choose Estimation Method
+               </i></span>"),
+        choices = c("posthoc", "foce", "focei"),
+        selected = "posthoc"
+      ),
+      numericInput(
+        inputId = "eval_max",
+        label = HTML("<span style='color:grey'><i>
+          Maximum Number of Evaluations
+               </i></span>"),
+        value = 200,
+        min = 0,
+        max = 4000,
+        step = 1
+      ),
+      numericInput(
+        inputId = "inner_iter",
+        label = HTML("<span style='color:grey'><i>
+          Number of Iterations for n1qn1 Optimization
+               </i></span>"),
+        value = 10,
+        min = 0,
+        max = 1000,
+        step = 1
+      ),
+      numericInput(
+        inputId = "outer_iter",
+        label = HTML("<span style='color:grey'><i>
+          Number of Iterations for L-BFGS-B Optimization for Outer Problem
+               </i></span>"),
+        value = 50,
+        min = 0,
+        max = 5000,
+        step = 1
+      ),
+      selectInput(
+        inputId = "outer_opt",
+        label = HTML("<span style='color:grey'><i>
+          Optimization Method for Outer Problem
+               </i></span>"),
+        choices = c("nlminb", "bobyqa", "lbfgsb3c", "L-BFGS-B", "mma", "lbfgsbLG", "slsqp", "Rvmmin"),
+        selected = "lbfgsbLG"
+      ),
+      selectInput(
+        inputId = "inner_opt",
+        label = HTML("<span style='color:grey'><i>
+          Optimization Method for Inner Problem
+               </i></span>"),
+        choices = c("n1qn1", "BFGS"),
+        selected = "n1qn1"
+      ),
+      HTML("<hr size='1px', style='color:#e0e0e0;border-style:dashed'>"), # horizental line
+      HTML("<span style='color:grey'><i>
+      [Manipulate estimation specs] <br>
+      *Post-hoc: default method, only evaluate, no parameter change <br>
+      *foce: estimate theta & eta <br>
+               </i></span>")
+      
+      
+    )
   ),
   
   dashboardSidebar(
@@ -203,7 +274,7 @@ ui <- dashboardPage(
       'uzis', image = "https://www.flaticon.com/svg/static/icons/svg/3824/3824068.svg"
     ),
     
-    elevation = 4,
+    elevation = 2,
     expandOnHover = FALSE,
     minified = FALSE,
     collapsed = TRUE
@@ -222,7 +293,7 @@ ui <- dashboardPage(
           title = "INFORMATION", # =====================================================
           collapsed = TRUE,
           background = 'gray',
-          gradient = TRUE,
+          gradient = FALSE,
           elevation = 2,
           "Information about the patient should put"
           
@@ -233,7 +304,7 @@ ui <- dashboardPage(
       box(
         width=6,
         title = "Patient Info",
-        elevation = 3,
+        elevation = 2,
         
         HTML("<span style='color:grey'><i>
           *The information below is only used to identify patients
@@ -275,7 +346,7 @@ ui <- dashboardPage(
       tabBox(
         id = 'calcul_tab',
         width=6,
-        elevation = 3,
+        elevation = 2,
         type = 'tabs',
         status = 'gray',
         solidHeader = TRUE,
@@ -310,7 +381,7 @@ ui <- dashboardPage(
       box(
         width=5,
         title = "Model Selection",
-        elevation = 3,
+        elevation = 2,
         
         selectInput(
           
@@ -337,7 +408,7 @@ ui <- dashboardPage(
         box(
           width=12,
           title = "Model Scheme",
-          elevation = 3,
+          elevation = 2,
           HTML("<span style='color:grey'><i>
           *Scheme of the selected model
                </i></span>"),
@@ -349,7 +420,7 @@ ui <- dashboardPage(
         box(
           width=12,
           title = "Notes",
-          elevation = 3,
+          elevation = 2,
           HTML("<span style='color:grey'><i>
           *Abbreviations used in the selected model
                </i></span>"),
@@ -364,7 +435,7 @@ ui <- dashboardPage(
       box(
         width=8,
         title = "Patient History",
-        elevation = 3,
+        elevation = 2,
         HTML("<span style='color:grey'><i>
           *Dosing History
                </i></span>"),
@@ -381,7 +452,7 @@ ui <- dashboardPage(
       box(
         width=4,
         title = "History Information",
-        elevation = 3,
+        elevation = 2,
         
         HTML("<span style='color:grey'><i>
           - Needed covariate information about selected model will be appeared in the observation history table <br><br>
@@ -398,7 +469,7 @@ ui <- dashboardPage(
           title = "ESTIMATION", # ======================================================
           collapsed = TRUE,
           background = 'gray',
-          gradient = TRUE,
+          gradient = FALSE,
           elevation = 2,
           "Estimate the model parameter based on the patient information input"
           
@@ -409,15 +480,15 @@ ui <- dashboardPage(
       box(
         width=12,
         title = "Plot information",
-        elevation = 3,
+        elevation = 2,
         maximizable = TRUE,
         
         htmlOutput("pkpd_des")
       ),
       box(
-        width=6,
+        width=12,
         title = "Pharmacokinetic Profiles",
-        elevation = 3,
+        elevation = 2,
         maximizable = TRUE,
         HTML("<span style='color:grey'><i>
           *Time-Conc. plot of the patient given by the selected model
@@ -428,9 +499,9 @@ ui <- dashboardPage(
         
       ),
       box(
-        width=6,
-        title = "Pharmcodynamic Profiles",
-        elevation = 3,
+        width=12,
+        title = "Pharmacodynamic Profiles",
+        elevation = 2,
         maximizable = TRUE,
         HTML("<span style='color:grey'><i>
           *Time-Effect plot of the patient given by the selected model
@@ -446,7 +517,7 @@ ui <- dashboardPage(
         width=6,
         maximizable = TRUE,
         title = "Parameter Variation",
-        elevation = 3,
+        elevation = 2,
         HTML("<span style='color:grey'><i>
           *Each parameter's variation is represented in relative scale<br>
           *Parameters not being plotted follows the population value
@@ -460,7 +531,7 @@ ui <- dashboardPage(
       box(
         width=6,
         title = "Estimation Result",
-        elevation = 3,
+        elevation = 2,
         HTML("<span style='color:grey'><i>
           *Estimation results presented in a table
                </i></span>"),
@@ -480,7 +551,7 @@ ui <- dashboardPage(
         collapsed = TRUE,
         width=12,
         title = "Additonal Diagnosis",
-        elevation = 3,
+        elevation = 2,
         HTML("<span style='color:grey'><i>
         [Goodness of Fit]
                </i></span>"),
@@ -509,7 +580,7 @@ ui <- dashboardPage(
           title = "SIMULATION", # ======================================================
           collapsed = TRUE,
           background = 'gray',
-          gradient = TRUE,
+          gradient = FALSE,
           elevation = 2,
           "Simulate dosings with estimation results"
           
@@ -520,7 +591,7 @@ ui <- dashboardPage(
       box(
         width=8,
         title = "Simulation Options",
-        elevation = 3,
+        elevation = 2,
         HTML("<span style='color:grey'><i>
           *Simulation History
                </i></span>"),
@@ -540,7 +611,7 @@ ui <- dashboardPage(
       box(
         width=4,
         title = "Simulation Diagnosis",
-        elevation = 3,
+        elevation = 2,
         
         HTML("<span style='color:grey'><i>
           *Simulation based steady state diagnosis
@@ -551,76 +622,61 @@ ui <- dashboardPage(
         
         
       ),
-      column(
-        width=12,
-        box(
-          width=12,
-          title = "Simulation Plot",
-          elevation = 3,
-          HTML("<span style='color:grey'><i>
-          *Simulated Time-Conc. (upper) and Time-Effect (lower) plots of the patient given by the selected model
-               </i></span>"),
-          withSpinner(plotlyOutput("pk_sim_plot"),
-                      type = getOption("spinner.type", default = 8),
-                      color = getOption("spinner.color", default = 'lightgrey')),
-          withSpinner(plotlyOutput("pd_sim_plot"),
-                      type = getOption("spinner.type", default = 8),
-                      color = getOption("spinner.color", default = 'lightgrey'))
-          
-        )
-      ),
-      box(
-        width=12,
-        title = "Probability analysis",
-        elevation = 3,
-        
-        HTML("<span style='color:grey'><i>
-          Functions will be updated <br><br>
-          - Diagnosis method selection <br>
-          - Prediction Given by residuals
-               </i></span>")
-      ),
       box(
         width=12,
         collapsed = TRUE,
         title = "hist data()",
-        elevation = 3,
+        elevation = 2,
         tableOutput("data_arr")
       ),
       box(
         width=12,
         collapsed = TRUE,
         title = "simulation without IIV",
-        elevation = 3,
+        elevation = 2,
         tableOutput("data_arr2")
       ),
       box(
         width=12,
         collapsed = TRUE,
         title = "simulation with IIV",
-        elevation = 3,
+        elevation = 2,
         tableOutput("data_arr7")
       ),
       box(
         width=12,
         collapsed = TRUE,
         title = 'obshis',
-        elevation = 3,
+        elevation = 2,
         tableOutput("obshis")
       ),
       box(
         width=12,
         collapsed = TRUE,
+        title = 'dosehis',
+        elevation = 2,
+        tableOutput("dosehis")
+      ),
+      box(
+        width=12,
+        collapsed = TRUE,
         title = 'fit.s',
-        elevation = 3,
+        elevation = 2,
         tableOutput("data_arr5")
       ),
       box(
         width=12,
         collapsed = TRUE,
         title = 'ev',
-        elevation = 3,
+        elevation = 2,
         tableOutput("data_arr6")
+      ),
+      box(
+        width=12,
+        collapsed = TRUE,
+        title = 'sim_res_iiv',
+        elevation = 2,
+        tableOutput("data_arr8")
       )
       
       
@@ -648,6 +704,7 @@ server <- function(input, output, session) {
   des_server("des_abbr", mod_env, model)  # Load selected model environment
   
   mod_env <- reactive({
+    
     drug_selection <- drug_selection()
     model <- model()
     
@@ -657,18 +714,19 @@ server <- function(input, output, session) {
                                       pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
       ) %in% list.files("./drug/", pattern = ".R", recursive = TRUE) ) == 1 # TRUE when only 1 model is returned
       ,
-      
       # then
       source(
         paste0(
           "./drug/",drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
                                                   pattern = paste0(model, ".R"), recursive = TRUE) # Finding specified name
         )
-      ),
-      
+      )
+      ,
       # else
-      source("./default.R") # Default state (:no model loaded)
+      source("./default.R") # Default state (:no model loaded)  
+      
     )  
+    
     
   }) # Loading model environment ends
   
@@ -710,6 +768,7 @@ server <- function(input, output, session) {
                                Dur=as.numeric(NA),
                                Rep=as.numeric(NA),
                                Inter=as.numeric(NA),
+                               Steady=0,
                                stringsAsFactors = FALSE)
     # Observation initial state: list[[2]]
     df_obsh_ini <- data.frame(Date=Sys.Date(),
@@ -730,6 +789,7 @@ server <- function(input, output, session) {
                                    Dur=as.numeric(NA),
                                    Rep=as.numeric(NA),
                                    Inter=as.numeric(NA),
+                                   Steady=0,
                                    stringsAsFactors = FALSE)
     
     list(df_doseh_ini, # [[1]]
@@ -784,71 +844,63 @@ server <- function(input, output, session) {
     mod_env() # load model's environment
     
     # Loading dosing history from ui input
-    doseh <- rbind(
-      cbind(hot_to_r(input$doseh),condi='est'),
-      cbind(hot_to_r(input$sim_doseh),condi='sim')
-    )
-    doseh <- doseh %>%
-      tidyr::fill_(fill_cols = c('Date', 'Route'), .direction = "down") %>%
+    doseh <- dplyr::bind_rows( # combining estimation/simulation dataset
+      hot_to_r(input$doseh) %>% mutate(condi='est'),
+      hot_to_r(input$sim_doseh) %>% mutate(condi='sim')
+      ) %>%
+      tidyr::fill(c('Date', 'Route'), .direction = "down") %>%
       mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Inter'), ~replace_na(., 0)) %>% 
-      mutate_at(vars('Rep'), ~replace_na(., 1))
-    doseh <- doseh[!(doseh$Amt == 0), ] # get rid of the unused dosing (dosing amount of 0)
+      mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
+      # data processing (NONMEM-like format)
+      filter(Amt != 0) %>% # get rid of the unused dosing (dosing amount of 0)
+      rename(AMT = Amt, ADDL = Rep, II = Inter, SS = Steady) %>% # rename columns
+      mutate(MDV = 1,
+             EVID = 1,
+             CMT = mod_comp[Route],
+             RATE = ifelse(Dur!=0, AMT/Dur,0)) # if duration exists, RATE generated
     
-    # NONMEM like data processing
-    doseh$MDV <- 1
-    doseh$EVID <- 1
-    doseh$CMT <- mod_comp[doseh$Route] # model dependent
-    doseh$AMT <- doseh$Amt
-    doseh$RATE <- ifelse(doseh$Dur!=0, doseh$Amt/doseh$Dur, 0)
-    doseh$ADDL <- doseh$Rep
-    doseh$II <- doseh$Inter
+    output$dosehis <- renderTable({doseh})
     
     # Loading observation history from ui input
-    obsh <- hot_to_r(input$obsh)
-    
-    obsh$MDV <- 0
-    doseh$EVID <- 1
-    obsh$CMT <- mod_comp[obsh$Type]
-    obsh <- obsh %>%
-      tidyr::fill_(fill_cols = c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
-      mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(., 0))
-    obsh$DV <- obsh$Val
-    obsh$condi <- 'est'
+    obsh <- hot_to_r(input$obsh) %>% 
+      tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
+      mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(., 0)) %>% 
+      mutate(MDV = 0,
+             EVID = 0,
+             CMT = mod_comp[Type],
+             condi = 'est') %>% # labeling: estimation dataset
+      rename(DV = Val)
     
     
     
     
-    output$obshis <- renderTable({obsh})
+    output$obshis <- renderTable({obsh}) # debugging table, observation history
     
-    f_data <- dplyr::bind_rows(obsh, doseh) # dosing, observation data merging
-    # Time ordering
-    f_data <- f_data[order(f_data$Date, f_data$Hour, f_data$Min), ]
-    f_data$TIME <- difftime(paste0(f_data$Date," ",f_data$Hour,":",f_data$Min), # until
-                            paste0(f_data[1,"Date"]," ",f_data[1,"Hour"],":",f_data[1,"Min"]), # from
-                            units='hours')
-    # Patient info
-    f_data$ID <- input$ID
+    f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
+      arrange(Date, Hour, Min) %>% # Time ordering
+      mutate(TIME = difftime(
+        paste0(Date," ",Hour,":",Min), # until
+        paste0(first(Date)," ",first(Hour),":",first(Min)), # from
+        units='hours' # unit: hours
+      ),
+      ID = input$ID) # Patient info
     
     
-    # Only for model Jung et al. ---------------------------------------------
+    # Model designated function -----------------------------------------------
     f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"]
     # put any logical equations about covariates in models
     # -------------------------------------------------------------------------
     
     # Table output (sorted history data)
-    f_data <- subset(f_data, select= -c(Amt, Dur, Rep, Type, Inter, Val))
+    f_data <- subset(f_data, select= -c(Dur, Type))
     
+    output$data_arr4 <- renderTable({ f_data }) # debugging table. fitting data
     
-    # Have to generate duplicate of individual in order to make nlmixr work (have to correct later)**
-    f_data2 <- f_data
-    f_data2$ID <- 0
-    f_data <- rbind(f_data, f_data2)
-    output$data_arr4 <- renderTable({ f_data })
     f_data
   })
   
   
-  sim_start_time <- reactive({
+  sim_start_time <- reactive({ # simulation start time
     sim_hist <- subset(hist_data(), condi=='sim' & ID==input$ID)
     sim_hist[is.na(sim_hist)] <- 0
     sim_hist <- head(sim_hist, 1)
@@ -869,42 +921,48 @@ server <- function(input, output, session) {
   
   # starts fitting when estimation button is pressed 
   fit.s <- eventReactive(input$run_button, {
-    fit.s <- subset(
-      
-      nlmixr(
-        object = f,
-        data = subset(hist_data(), condi=='est'),
-        est="focei",
-        control=foceiControl(maxOuterIterations = 0) # post-hoc method, https://github.com/nlmixrdevelopment/nlmixr/issues/32
-        
-      ), ID==input$ID
-      
+    fit.s <- nlmixr(
+      object = f,
+      data = subset(hist_data(), condi=='est'),
+      est = input$est_method, # post-hoc method, https://github.com/nlmixrdevelopment/nlmixr/issues/32
+      foceiControl(eval.max = input$eval_max,
+                   maxInnerIterations = input$inner_iter,
+                   maxOuterIterations = input$outer_iter,
+                   outerOpt = input$outer_opt,
+                   innerOpt = input$inner_opt)
     )
-    ifelse(is.null(fit.s$CMT), # condition
+    fit.s <- fit.s %>%
+      mutate(CMT = if(is.null(fit.s$CMT)) {pk_obs} else {mod_obs[as.numeric(CMT)]} ) %>% 
+      rename(Time = TIME)
+    #ifelse(is.null(fit.s$CMT), # condition
            #fit.s$CMT <- mod_comp[pk_obs], # TRUE (=CMT is null)
-           fit.s$CMT <- pk_obs, # TRUE (=CMT is null)
-           fit.s$CMT <- mod_obs[as.numeric(fit.s$CMT)] ) # FALSE (=CMT is not null)
+    #       fit.s$CMT <- pk_obs, # TRUE (=CMT is null)
+    #       fit.s$CMT <-  mod_obs[as.numeric(fit.s$CMT)]) # FALSE (=CMT is not null)
     
     fit.s
   })
   
   
-  output$data_arr5 <- renderTable({ fit.s() })
+  output$data_arr5 <- renderTable({ fit.s() }) # debugging table, fit results
   
   
   # estimation table for plot =======================================
   est_table <- reactive({ # Dose simulation on simulation box
-    fit.s <- fit.s()
+    
+    mod_env()
+    fit.s <- fit.s() # fitted data
     hist_data <-  hist_data() # completed history table
-    hist_data <- subset(hist_data, ID==input$ID)
     
+    # data subsetting: amt + cov_data -> merged ev
     amt_data <- subset(hist_data, !is.na(hist_data$AMT))
-    cov_data <- subset(hist_data, MDV==0)
+    cov_data <- subset(hist_data, MDV==0) %>%
+      rename(time = TIME) %>%
+      mutate(evid = MDV,
+             amt = 0) %>% dplyr::select(time, evid, all_of(mod_cov), CRPZERO)
     
-    est_hist <- subset(hist_data(), condi=='est' & ID==input$ID)
-    est_hist[is.na(est_hist)] <- 0
-    est_hist <- tail(est_hist, 1)
-    est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 24
+    est_hist <- subset(hist_data(), condi=='est' & ID==input$ID) %>% replace(is.na(.), 0) %>% tail(1)
+    
+    est_endtime <- est_hist[1,"TIME"] + (est_hist[1,"ADDL"] * est_hist[1,"II"]) + 24 # set endtime
     
     ev <- eventTable() %>% 
       add.sampling(seq(from=0, to=as.numeric(max( # follows the bigger record between simulation and estimation dosing history
@@ -915,33 +973,27 @@ server <- function(input, output, session) {
     # add dosing event (reading the history table written)
     for (i in 1:nrow(amt_data)){
       ev$add.dosing(dose = amt_data[i,"AMT"],
-                    rate=amt_data[i,"RATE"],
+                    rate = amt_data[i,"RATE"],
                     nbr.doses = amt_data[i,"ADDL"],
                     dosing.interval = amt_data[i,"II"],
-                    start.time = amt_data[i,"TIME"])  
+                    start.time = amt_data[i,"TIME"],
+                    ss = amt_data[i,"SS"])
     }
     
-    # merging cov data
-    names(cov_data)[names(cov_data)=="TIME"] <- "time"
-    cov_data$evid <- cov_data$MDV # should be corrected if there's any issues with EVID varying model
-    cov_data$amt <- 0
+    ev <- merge(ev, cov_data, all=TRUE) %>% # merge (outer join)
+      tidyr::fill(mod_cov, .direction = "downup") %>% # to fill NAs in the event table
+      tidyr::fill("CRPZERO", .direction = "downup")
+    # ev table will be transferred into 'eta' version or 'no-eta' version
     
-    cov_data <- subset(cov_data, select = c("time",
-                                            "evid",
-                                            mod_cov, # gathering model covariates
-                                            "CRPZERO")) # {only for the model Jung et al.}
-    
-    ev <- merge(ev, cov_data, all=TRUE) # merge method: 'outer join'
-    ev <- ev %>% tidyr::fill_(fill_cols=mod_cov, .direction = "downup") %>% # to fill NAs in the event table
-      tidyr::fill_(fill_cols = "CRPZERO", .direction = "downup")
-    ev # ev table will be transferred into 'eta' version or 'no-eta' version
-    
-    output$data_arr6 <- renderTable({ ev })
+    output$data_arr6 <- renderTable({ ev }) # debugging table, event table
     
     # ETA definition / Simulation ---------------------------------------------
     
+    
+    
     # Visual parametric diagnosis table (df_iiv), list[[3]]
     eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
+    
     df_iiv <- NULL
     
     for (i in 1:ncol(eta_table)){
@@ -971,48 +1023,58 @@ server <- function(input, output, session) {
     fit_est <- data.frame("Estimated" = t(tail(fit.s[,est_eta], 1)))
     fit_est <- tibble::rownames_to_column(fit_est, "param")
     
-    
     df_iiv <- merge(df_iiv, fit_est)
     
     # 'iiv' version for VPC(visual predictive check), 'no-iiv' version for simple simulation
+    
     # estimated eta
-    ev_noiiv <- cbind(ev, eta_table) # 'fixed' eta from final output
+    ev_noiiv <- dplyr::bind_cols(ev, eta_table) # 'fixed' eta from final output
     # randomized eta  
     ev_iiv <- ev # final output. no corrections made from original event table
     
-    #output$data_arr4 <- renderTable({
-    #  ev_noiiv
-    #})
     
-    hist_dose <- hist_data %>% filter(is.na(DV))
-    # simulation without IIV: list[[1]]
+    
+    # variable
+    hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
+    hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
+    
+    sim_start_time <- sim_start_time()
+    # simulation without IIV: list[[1]] ------------------------
     sim_res_noiiv <- rxSolve(object = fit.s,
-                             events=ev_noiiv,
-                             nSub = 1)
-    
-    sim_res_noiiv$date <- hist_dose[1,"Date"] + sim_res_noiiv$time%/%24
-    sim_res_noiiv[sim_res_noiiv$time %% 24 != 0,"date"] <- NA
-    sim_res_noiiv[2,"date"] <- NA #  /////////////////// Caution about this code, may cause some trouble ///////////////////
+                             events = ev_noiiv,
+                             nSub = 1) %>% 
+      mutate(date = hist_dose[1,"Date"] + (hist_time + time) %/% 24) %>% data.table() # date labeling, data.table
+
+    sim_res_noiiv[(hist_time + sim_res_noiiv$time) %% 24 != 0,"date"] <- NA
     sim_res_noiiv$date <- format(sim_res_noiiv$date, "%m/%d")
     
     
-    sim_start_time <- sim_start_time()
     
-    sim_res_noiiv$condi <- ifelse(sim_res_noiiv$time<as.numeric(sim_start_time),
-                                  'est',
-                                  'sim')
+    
+    sim_res_noiiv$condi <- ifelse(sim_res_noiiv$time < as.numeric(sim_start_time),'est','sim')
     sim_res_noiiv$condi[is.na(sim_res_noiiv$condi)] <- 'est'
     
-    # simulation with IIV: list[[2]]
+    # simulation with IIV: list[[2]] ---------------------------
     sim_res_iiv <- rxSolve(object = fit.s,
                            events=ev_iiv,
                            nSub = input$vpc_opt, # how many simulations will be generated
-                           seed = input$vpc_seed)
+                           seed = input$vpc_seed) %>%  data.table() %>% rename(Time=time)
     
-    sim_res_iiv$condi <- ifelse(sim_res_iiv$time<as.numeric(sim_start_time),
-                                'est',
-                                'sim')
+    sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_start_time),'est','sim')
     sim_res_iiv$condi[is.na(sim_res_iiv$condi)] <- 'est'
+   
+    
+    sim_res_iiv <- data.table::melt(sim_res_iiv, id.vars = c("Time","condi"), measure.vars = c(if(is.na(pk)){NULL}else{pk},
+                                                                                               if(is.na(pd)){NULL}else{pd})) # check the function for version up 
+    
+    sim_res_iiv <- sim_res_iiv[, .(P5 = quantile(value, 0.05),
+                                   P25 = quantile(value, 0.25),
+                                   P50 = quantile(value, 0.50),
+                                   P75 = quantile(value, 0.75),
+                                   P95 = quantile(value, 0.95)), by=.(Time,condi,variable)]
+    
+    output$data_arr8 <- renderTable({sim_res_iiv})
+    
     
     list(sim_res_noiiv, sim_res_iiv, df_iiv) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
     
@@ -1084,32 +1146,11 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
-  
-  
+
   output$pk_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
     if(is.na(pk)){ # check if there's pk designated in the model document
-      ggp <- ggplot() +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=0.1,  label="No pharmacokinetic analysis supported"), size=3.5) +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=-0.1,  label="Explore another model to configure"), size=3.5) +
-        ylim(-1,1) +
-        
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              axis.text.x=element_blank(),
-              axis.text.y=element_blank(),
-              axis.title.x=element_blank(),
-              axis.title.y=element_blank(),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
+      no_plot("No pharmacokinetic analysis supported","Explore another model to configure")
     }else{
       
       # pk observation period
@@ -1119,78 +1160,53 @@ server <- function(input, output, session) {
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
       fit.s <- fit.s()
-      names(fit.s)[names(fit.s)=="TIME"] <- "Time" # renaming time
-      
-      sim_res_noiiv <- est_table()[[1]] %>% filter(time<=est_endtime)
-      sim_res_iiv <- est_table()[[2]] %>% filter(time<=est_endtime)
-      
-      names(sim_res_noiiv)[names(sim_res_noiiv)=="time"] <- "Time" # renaming time
-      names(sim_res_noiiv)[names(sim_res_noiiv)==pk] <- "Estimated" # renaming the model-predicted value
-      
-      names(sim_res_iiv)[names(sim_res_iiv)=="time"] <- "Time" # renaming time
-      names(sim_res_iiv)[names(sim_res_iiv)==pk] <- "Estimated" # renaming the model-predicted value
-      
-      sim_res_iiv <- sim_res_iiv %>% 
-        group_by(Time) %>% 
-        summarize(
-          P5 = quantile(Estimated, probs = 0.05),
-          P25 = quantile(Estimated, probs = 0.25),
-          P50 = quantile(Estimated, probs = 0.5),
-          P75 = quantile(Estimated, probs = 0.75),
-          P95 = quantile(Estimated, probs = 0.95),
-          condi = condi
-        )
-      #sim_res_iiv <- subset(sim_res_iiv, sim.id==1)
-      
-      
-      
+      sim_res_noiiv <- est_table()[[1]] %>%
+        rename(Time = time, Estimated = pk)
+      sim_res_iiv <- est_table()[[2]] %>%
+        filter(variable == pk)
       
       # plot
-      ggp <- ggplot(sim_res_noiiv) +
-        
-        scale_fill_manual(values=c(pk_color, '#999999')) +
-        scale_color_manual(values=c(pk_color, '#999999')) +
-        
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95, fill=condi), alpha=0.15) +
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75, fill=condi), alpha=0.25) +
-        geom_line(data=sim_res_iiv, aes(x=Time, y=P50, color=condi), size=0.6, alpha=0.4, linetype="dashed") +
-        
-        geom_line(aes(x=Time, y=Estimated, color=condi), size=0.6) +
-        
-        
-        geom_point(data = base::subset(fit.s, CMT==pk_obs),
-                   color = pk_color,
-                   aes(x=Time, y=DV)) +
-        
-        geom_errorbar(data = base::subset(fit.s, CMT==pk_obs),
-                      color = pk_color,
-                      aes(x=Time, y=DV, ymax=DV+IRES, ymin=DV-IRES),width=1) +
-        
-        
-        geom_text(color = 'gray65',
-                  aes(x=Time, y=Estimated, label=date), size=3.5) +
-        
-        
-        
-        xlab(pk_x_label) +
-        ylab(pk_y_label) +
-        scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
-                           minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
-        scale_y_continuous(breaks=seq(0,150,5)) +
-        
-        # ggplot theme setting
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.title.x = element_text(colour='grey70'),
-              axis.title.y = element_text(colour='grey70'),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
+      pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label)
+      
+      
+      
+      #ggplotly(
+      #  ggplot(sim_res_noiiv) +
+      #    
+      #    scale_fill_manual(values=c(pk_color, '#999999')) +
+      #    scale_color_manual(values=c(pk_color, '#999999')) +
+      #    
+      #    geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95, fill=condi), alpha=0.15) +
+      #    geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75, fill=condi), alpha=0.25) +
+      #    geom_line(data=sim_res_iiv, aes(x=Time, y=P50, color=condi), size=0.6, alpha=0.4, linetype="dashed") +
+      #    
+      #    geom_line(aes(x=Time, y=Estimated, color=condi), size=0.6) +
+      #    geom_point(data = base::subset(fit.s, CMT==pk_obs),
+      #               color = pk_color,
+      #               aes(x=Time, y=DV)) +
+      #    geom_errorbar(data = base::subset(fit.s, CMT==pk_obs),
+      #                  color = pk_color,
+      #                  aes(x=Time, y=DV, ymax=DV+IRES, ymin=DV-IRES),width=1) +
+      #    geom_text(color = 'gray65',
+      #              aes(x=Time, y=Estimated, label=date), size=3.5) +
+      #    xlab(pk_x_label) +
+      #    ylab(pk_y_label) +
+      #    #scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
+      #    #                   minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
+      #    #scale_y_continuous(breaks=seq(0,150,5)) +
+      #    # ggplot theme setting
+      #    theme(legend.position='none',
+      #          plot.background = element_rect(fill='transparent',colour=NA),
+      #          panel.background = element_rect(fill='transparent',colour=NA),
+      #          panel.grid.major = element_line(colour='grey70', size=0.05),
+      #          panel.grid.minor = element_line(colour='grey70', size=0.05),
+      #          axis.title.x = element_text(colour='grey70'),
+      #          axis.title.y = element_text(colour='grey70'),
+      #          axis.text = element_text(colour='grey70'),
+      #          axis.ticks = element_line(colour='transparent', size=0.05)
+      #    )
+      #)
     }
-    ggplotly(ggp)
   })
   
   output$pkpd_des <- renderPrint({
@@ -1215,25 +1231,7 @@ server <- function(input, output, session) {
   output$pd_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
     if(is.na(pd)){ # check if there's pd designated in the model document
-      ggp <- ggplot() +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=0.1,  label="No pharmacodynamic analysis supported"), size=3.5) +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=-0.1,  label="Explore another model to configure"), size=3.5) +
-        ylim(-1,1) +
-        
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              axis.text.x=element_blank(),
-              axis.text.y=element_blank(),
-              axis.title.x=element_blank(),
-              axis.title.y=element_blank(),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
+      no_plot("No pharmacodynamic analysis supported","Explore another model to configure")
     }else{
       
       # pd observation period
@@ -1243,77 +1241,17 @@ server <- function(input, output, session) {
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
       fit.s <- fit.s()
-      names(fit.s)[names(fit.s)=="TIME"] <- "Time" # renaming time
-      
-      sim_res_noiiv <- est_table()[[1]] %>% filter(time<=est_endtime)
-      sim_res_iiv <- est_table()[[2]] %>% filter(time<=est_endtime)
-      
-      
-      names(sim_res_noiiv)[names(sim_res_noiiv)=="time"] <- "Time" # renaming time
-      names(sim_res_noiiv)[names(sim_res_noiiv)==pd] <- "Estimated" # renaming the model-predicted value
-      
-      names(sim_res_iiv)[names(sim_res_iiv)=="time"] <- "Time" # renaming time
-      names(sim_res_iiv)[names(sim_res_iiv)==pd] <- "Estimated" # renaming the model-predicted value
-      
-      sim_res_iiv <- sim_res_iiv %>% 
-        group_by(Time) %>% 
-        summarize(
-          P5 = quantile(Estimated, probs = 0.05),
-          P25 = quantile(Estimated, probs = 0.25),
-          P50 = quantile(Estimated, probs = 0.5),
-          P75 = quantile(Estimated, probs = 0.75),
-          P95 = quantile(Estimated, probs = 0.95),
-          condi = condi
-        )
-      #sim_res_iiv <- subset(sim_res_iiv, sim.id==1)
-      
-      
-      #fit.s$CMT <- as.numeric(fit.s$CMT) # Compartment numbering in fitted table
+      sim_res_noiiv <- est_table()[[1]] %>%
+        rename(Time = time, Estimated=pd)
+      sim_res_iiv <- est_table()[[2]] %>%
+        filter(variable == pd)
       
       # plot
-      ggp <- ggplot(sim_res_noiiv) +
-        
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95), alpha=0.15, fill=pd_color) +
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75), alpha=0.25, fill=pd_color) +
-        geom_line(data=sim_res_iiv, aes(x=Time, y=P50), size=0.6, alpha=0.4, color=pd_color, linetype="dashed") +
-        
-        
-        geom_line(color=pd_color, aes(x=Time, y=Estimated), size=0.6) +
-        
-        
-        geom_point(data = subset(fit.s, CMT==pd_obs),
-                   color = pd_color,
-                   aes(x=Time, y=DV)) +
-        
-        geom_errorbar(data = subset(fit.s, CMT==pd_obs),
-                      color = pd_color,
-                      aes(x=Time, y=DV, ymax=DV+IRES, ymin=DV-IRES),width=1) +
-        
-        geom_text(color = 'gray65',
-                  aes(x=Time, y=Estimated, label=date), size=3.5) +
-        
-        
-        
-        xlab(pd_x_label) +
-        ylab(pd_y_label) +
-        scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
-                           minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
-        scale_y_continuous(breaks=seq(0,150,5)) +
-        
-        # ggplot theme setting
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.title.x = element_text(colour='grey70'),
-              axis.title.y = element_text(colour='grey70'),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
+      pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pd_color, pd_obs, pd_x_label, pd_y_label)
+      
       
     }
-    ggplotly(ggp)
+    
   })
   
   
@@ -1372,190 +1310,6 @@ server <- function(input, output, session) {
   })
   
   
-  # Simulation plots ================================================
-  
-  output$pk_sim_plot <- renderPlotly({
-    mod_env() # load selected model's environment
-    if(is.na(pk)){ # check if there's pk designated in the model document
-      ggp <- ggplot() +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=0.1,  label="No pharmacokinetic analysis supported"), size=3.5) +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=-0.1,  label="Explore another model to configure"), size=3.5) +
-        ylim(-1,1) +
-        
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              axis.text.x=element_blank(),
-              axis.text.y=element_blank(),
-              axis.title.x=element_blank(),
-              axis.title.y=element_blank(),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
-    }else{
-      
-      # pk observation period
-      
-      sim_start_time <- sim_start_time()
-      
-      sim_res_noiiv <- est_table()[[1]]# %>% filter(time>=sim_start_time-12) %>% mutate(time = time - sim_start_time)
-      sim_res_iiv <- est_table()[[2]]# %>% filter(time>=sim_start_time-12) %>% mutate(time = time - sim_start_time)
-      
-      names(sim_res_noiiv)[names(sim_res_noiiv)=="time"] <- "Time" # renaming time
-      names(sim_res_noiiv)[names(sim_res_noiiv)==pk] <- "Estimated" # renaming the model-predicted value
-      
-      names(sim_res_iiv)[names(sim_res_iiv)=="time"] <- "Time" # renaming time
-      names(sim_res_iiv)[names(sim_res_iiv)==pk] <- "Estimated" # renaming the model-predicted value
-      
-      sim_res_iiv <- sim_res_iiv %>% 
-        group_by(Time) %>% 
-        summarize(
-          P5 = quantile(Estimated, probs = 0.05),
-          P25 = quantile(Estimated, probs = 0.25),
-          P50 = quantile(Estimated, probs = 0.5),
-          P75 = quantile(Estimated, probs = 0.75),
-          P95 = quantile(Estimated, probs = 0.95),
-          condi = condi
-        )
-      
-      
-      
-      # plot
-      ggp <- ggplot(sim_res_noiiv) +
-        
-        scale_fill_manual(values=c(pk_color, '#66CCCC')) +
-        scale_color_manual(values=c(pk_color, '#66CCCC')) +
-        
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95, fill=condi), alpha=0.15) +
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75, fill=condi), alpha=0.25) +
-        geom_line(data=sim_res_iiv, aes(x=Time, y=P50, color=condi), size=0.6, alpha=0.4) +
-        
-        geom_line(aes(x=Time, y=Estimated, color=condi), size=0.6) +
-        
-        geom_text(color = 'gray65',
-                  aes(x=Time, y=Estimated, label=date), size=3.5) +
-        
-        
-        xlab(pk_x_label) +
-        ylab(pk_y_label) +
-        scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
-                           minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
-        scale_y_continuous(breaks=seq(0,150,5)) +
-        
-        # ggplot theme setting
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.title.x = element_text(colour='grey70'),
-              axis.title.y = element_text(colour='grey70'),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
-    }
-    ggplotly(ggp)
-  })
-  
-  
-  
-  
-  
-  output$pd_sim_plot <- renderPlotly({
-    mod_env() # load selected model's environment
-    if(is.na(pd)){ # check if there's pd designated in the model document
-      ggp <- ggplot() +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=0.1,  label="No pharmacodynamic analysis supported"), size=3.5) +
-        geom_text(color = 'gray65',
-                  aes(x=0, y=-0.1,  label="Explore another model to configure"), size=3.5) +
-        ylim(-1,1) +
-        
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              axis.text.x=element_blank(),
-              axis.text.y=element_blank(),
-              axis.title.x=element_blank(),
-              axis.title.y=element_blank(),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-        )
-    }else{
-      
-      
-      # pd observation period
-      
-      sim_start_time <- sim_start_time()
-      
-      sim_res_noiiv <- est_table()[[1]]# %>% filter(time>=sim_start_time-12) %>% mutate(time = time - sim_start_time)
-      sim_res_iiv <- est_table()[[2]]# %>% filter(time>=sim_start_time-12) %>% mutate(time = time - sim_start_time)
-      
-      
-      
-      names(sim_res_noiiv)[names(sim_res_noiiv)=="time"] <- "Time" # renaming time
-      names(sim_res_noiiv)[names(sim_res_noiiv)==pd] <- "Estimated" # renaming the model-predicted value
-      
-      names(sim_res_iiv)[names(sim_res_iiv)=="time"] <- "Time" # renaming time
-      names(sim_res_iiv)[names(sim_res_iiv)==pd] <- "Estimated" # renaming the model-predicted value
-      
-      sim_res_iiv <- sim_res_iiv %>% 
-        group_by(Time) %>% 
-        mutate(
-          P5 = quantile(Estimated, probs = 0.05),
-          P25 = quantile(Estimated, probs = 0.25),
-          P50 = quantile(Estimated, probs = 0.5),
-          P75 = quantile(Estimated, probs = 0.75),
-          P95 = quantile(Estimated, probs = 0.95)
-        )
-      sim_res_iiv <- subset(sim_res_iiv, sim.id==1)
-      
-      
-      # plot
-      ggp <- ggplot(sim_res_noiiv) +
-        
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95), alpha=0.15, fill=pd_color) +
-        geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75), alpha=0.25, fill=pd_color) +
-        geom_line(data=sim_res_iiv, aes(x=Time, y=P50), size=0.6, alpha=0.4, color=pd_color) +
-        
-        
-        geom_line(color=pd_color, aes(x=Time, y=Estimated), size=0.6) +
-        
-        geom_text(color = 'gray65',
-                  aes(x=Time, y=Estimated, label=date), size=3.5) +
-        
-        
-        
-        xlab(pd_x_label) +
-        ylab(pd_y_label) +
-        scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
-                           minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
-        scale_y_continuous(breaks=seq(0,150,5)) +
-        
-        # ggplot theme setting
-        theme(legend.position='none',
-              plot.background = element_rect(fill='transparent',colour=NA),
-              panel.background = element_rect(fill='transparent',colour=NA),
-              panel.grid.major = element_line(colour='grey70', size=0.05),
-              panel.grid.minor = element_line(colour='grey70', size=0.05),
-              axis.title.x = element_text(colour='grey70'),
-              axis.title.y = element_text(colour='grey70'),
-              axis.text = element_text(colour='grey70'),
-              axis.ticks = element_line(colour='transparent', size=0.05)
-              
-              
-        )
-    }
-    ggplotly(ggp)
-  })
-  
-  
   # Simulation result table
   sim_summary <- reactive({
     
@@ -1567,17 +1321,17 @@ server <- function(input, output, session) {
     
     # if it is intermittent dosing (comparison between peaks)
     sim_res_peak <- sim_res_noiiv %>%
-      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipred, Inf)))) == -2, select = c(time,ipred)) %>% 
-      mutate(dif=c(NA,diff(ipred))) %>%
-      mutate(dif_ratio = abs(dif / ipred)) %>% 
+      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == -2, select = c(time,ipredSim)) %>% 
+      mutate(dif=c(NA,diff(ipredSim))) %>%
+      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
       subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
       filter(time>sim_start_time)
     
     
     sim_res_trough <- sim_res_noiiv %>%
-      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipred, Inf)))) == 2, select = c(time,ipred)) %>% 
-      mutate(dif=c(NA,diff(ipred))) %>%
-      mutate(dif_ratio = abs(dif / ipred)) %>% 
+      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == 2, select = c(time,ipredSim)) %>% 
+      mutate(dif=c(NA,diff(ipredSim))) %>%
+      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
       slice(2:n()) %>% 
       slice(1:n()-1) %>% 
       subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
@@ -1586,19 +1340,19 @@ server <- function(input, output, session) {
     
     # if it is continuous infusion (comparison between prior point)
     sim_res_inf <- sim_res_noiiv %>%
-      mutate(dif = c(NA,diff(sim_res_noiiv$ipred))) %>% 
-      mutate(dif_ratio = abs(dif / ipred)) %>% 
+      mutate(dif = c(NA,diff(sim_res_noiiv$ipredSim))) %>% 
+      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
       subset(dif_ratio<=0.001 & dif_ratio>=0) %>% 
       filter(time>sim_start_time)
     
     
     # concentration table: list[[1]]
     sim_conc_sum <- data.frame(
-      Trough = sim_res_trough$ipred[1],
+      Trough = sim_res_trough$ipredSim[1],
       Average = ifelse(nrow(sim_res_peak)==0 & nrow(sim_res_trough)==0,
-                       sim_res_inf$ipred[1], # TRUE (==NA)
-                       (sim_res_trough$ipred[1] + sim_res_peak$ipred[1])/2), # FALSE (peak and trough data generated)
-      Peak = sim_res_peak$ipred[1]
+                       sim_res_inf$ipredSim[1], # TRUE (==NA)
+                       (sim_res_trough$ipredSim[1] + sim_res_peak$ipredSim[1])/2), # FALSE (peak and trough data generated)
+      Peak = sim_res_peak$ipredSim[1]
     )
     
     # time table: list[[2]]

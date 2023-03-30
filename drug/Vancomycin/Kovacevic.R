@@ -4,9 +4,9 @@
 des_intro <- "Vancomycin IV model for critically ill adult septic patients"
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of CrCL is recommend to reflect physiological changes in clearance")
+               "- Detailed tracking of CLCR is recommend to reflect physiological changes in clearance")
 des_comp <- "central"
-des_cov <- "CrCL" # Strict 
+des_cov <- "CLCR" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Vancomycin)","<br>",
                 "- Cl: clearance (Vancomycin)")
@@ -15,7 +15,7 @@ des_params <- c("- V: volume of distritubtion (Vancomycin)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CrCL","WT")
+mod_cov <- c("CLCR","WT")
 mod_cov_abbr <- c("Creatinine Clearance","Body Weight")
 
 mod_route <- c("IV")
@@ -27,6 +27,12 @@ pk_color <- '#FF6666'
 pk_x_label <- "Time (hours)"
 pk_y_label <- "Vancomycin Conc. (mg/L)"
   
+pd <- NA
+pd_obs <- NA
+pd_color <- NA
+pd_x_label <- NA
+pd_y_label <- NA
+
   # model scheme image ------------------------------------------------
   scheme_image <- "https://els-jbs-prod-cdn.jbs.elsevierhealth.com/cms/attachment/e9f4a16a-a113-4770-86c4-614b4895f30c/fx1.jpg"
   
@@ -52,7 +58,7 @@ pk_y_label <- "Vancomycin Conc. (mg/L)"
       eta1 ~ c(0.278)         # CL
       })
     model({
-      cl <- exp(theta1 + eta1)*CrCL + 1.93
+      cl <- exp(theta1 + eta1)*CLCR + 1.93
       v <- theta2 * WT 
       #ke <- theta1 / theta2
       ke = cl/v
