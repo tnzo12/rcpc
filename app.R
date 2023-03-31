@@ -990,48 +990,14 @@ server <- function(input, output, session) {
     
     
     
-    # Visual parametric diagnosis table (df_iiv), list[[3]]
-    eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
-    
-    df_iiv <- NULL
-    
-    for (i in 1:ncol(eta_table)){
-      
-      # options for normal distribution
-      iiv_range = seq(from=-(6*sd_eta[i]), to=(6*sd_eta[i]), length=3) # numeric range (6 sigma = 99.999% range)
-      iiv_density = dnorm(iiv_range, mean=0, sd=sd_eta[i]) # probability density
-      
-      df_params <- data.frame(
-        iiv_range,
-        iiv_density,
-        eta_group = paste0('eta',i), # grouping by eta
-        est_dif = eta_table[1,i],
-        param = unname(est_eta)[i],
-        unit = names(est_eta)[i]
-      )
-      
-      df_iiv <- rbind(df_iiv, df_params)
-    }
-    df_iiv <- df_iiv %>%
-      group_by(param) %>% 
-      mutate(max_range = max(iiv_range)) %>% 
-      mutate(Percentage = est_dif/max_range*100) %>% 
-      mutate(iiv_range_percent = scales::rescale(iiv_range, to=c(-100,100)))
-    
-    
-    fit_est <- data.frame("Estimated" = t(tail(fit.s[,est_eta], 1)))
-    fit_est <- tibble::rownames_to_column(fit_est, "param")
-    
-    df_iiv <- merge(df_iiv, fit_est)
-    
+
     # 'iiv' version for VPC(visual predictive check), 'no-iiv' version for simple simulation
-    
-    # estimated eta
+
+    # 1) estimated eta
+    eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
     ev_noiiv <- dplyr::bind_cols(ev, eta_table) # 'fixed' eta from final output
-    # randomized eta  
+    # 2) randomized eta   
     ev_iiv <- ev # final output. no corrections made from original event table
-    
-    
     
     # variable
     hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
@@ -1062,6 +1028,7 @@ server <- function(input, output, session) {
     sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_start_time),'est','sim')
     sim_res_iiv$condi[is.na(sim_res_iiv$condi)] <- 'est'
    
+    sim_res_iiv_param <- sim_res_iiv
     
     sim_res_iiv <- data.table::melt(sim_res_iiv, id.vars = c("Time","condi"), measure.vars = c(if(is.na(pk)){NULL}else{pk},
                                                                                                if(is.na(pd)){NULL}else{pd})) # check the function for version up 
@@ -1075,7 +1042,22 @@ server <- function(input, output, session) {
     output$data_arr8 <- renderTable({sim_res_iiv})
     
     
-    list(sim_res_noiiv, sim_res_iiv, df_iiv) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
+    # visual parameter diagnostics (prm_iivs), list[[3]]
+    prm_iivs <- dplyr::bind_rows(sim_res_iiv_param, sim_res_noiiv) %>% 
+      .[, sim.id, mget(est_eta)] %>%
+      .[,lapply(.SD, mean),by=.(sim.id)] %>%
+      .[,paste0(est_eta,".z"):=lapply(.SD,scale), .SDcols = est_eta] %>% 
+      setnames(old = est_eta, new = paste0(est_eta,".v")) %>% 
+      data.table::melt(id.vars = 'sim.id',
+                       measure.vars = patterns("v$","z$"), # column names ends with v and z
+                       variable.name= "Param",
+                       value.name = c("Value","Z.score")) %>% 
+      .[,`:=`(Value=round(Value,3), Z.score=round(Z.score,3))] %>% # rounding 
+      .[,Param:=as.factor(est_eta)[Param]]
+    
+    
+    # list generated data
+    list(sim_res_noiiv, sim_res_iiv, prm_iivs) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
     
   })
   
@@ -1083,26 +1065,10 @@ server <- function(input, output, session) {
   
   
   output$param_vis <- renderPlotly({
-    df_iiv <- est_table()[[3]]
     
-    # plot
-    ggp <- ggplot(df_iiv,aes(x=param, y=iiv_range_percent, width=iiv_density, fill=param)) +
-      geom_violin(aes(color=param),trim=FALSE, alpha=0.5) +
-      geom_point(aes(y=Percentage, color=param), alpha=0.15, shape=16, size=3) +
-      xlab("Parameter") +
-      ylab("Variability (%)") +
-      theme(legend.position='none',
-            plot.background = element_rect(fill='transparent',colour=NA),
-            panel.background = element_rect(fill='transparent',colour=NA),
-            panel.grid.major = element_line(colour='grey70', size=0.05),
-            panel.grid.minor = element_line(colour='grey70', size=0.05),
-            axis.title.x = element_text(colour='grey70'),
-            axis.title.y = element_text(colour='grey70'),
-            axis.text = element_text(colour='grey70'),
-            axis.ticks = element_line(colour='transparent', size=0.05)
-      )
-    
-    ggplotly(ggp, tooltip = c("Percentage"))
+    prm_iivs <- est_table()[[3]]
+    # visual parameter diagnostic plot
+    vis_param(prm_iivs)
     
   })
   

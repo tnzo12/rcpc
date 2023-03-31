@@ -37,6 +37,32 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
 
 }
 
+# visual parameter diagnostics
+vis_param <- function(prm_iivs){
+  
+  plot_ly(data = prm_iivs, x = ~Param, y = ~Z.score, color = ~Param, opacity = 0.6,
+          type = "box", showlegend=FALSE, boxpoints = "all", jitter = 0.25, text = ~paste("<b>Value: </b>",Value),
+          boxmean = TRUE) %>%
+    add_markers(data = prm_iivs %>% filter(is.na(sim.id)),
+                y = ~Z.score, x = ~Param, color = ~Param, text = ~paste("<b>Value: </b>",Value),
+                marker = list(symbol = "arrow-bar-down", size = 10), 
+                inherit = FALSE, showlegend=FALSE) %>%
+    layout(
+      xaxis = list(
+        title = "Parameters",
+        color = "#999999"),
+      yaxis = list(
+        title = "Z-scores for simulated individuals",
+        color = "#999999",
+        showgrid = TRUE,
+        zeroline = FALSE),
+      plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)" 
+    )
+  
+}
+
+
+
 #sim_q
 #plot_ly(data = sim_q, x=~time, type=NULL, colors=c("#FF6666",'#999999')) %>%
 #  plotly::layout(xaxis = list(title="hi",
