@@ -1030,14 +1030,15 @@ server <- function(input, output, session) {
    
     sim_res_iiv_param <- sim_res_iiv
     
-    sim_res_iiv <- data.table::melt(sim_res_iiv, id.vars = c("Time","condi"), measure.vars = c(if(is.na(pk)){NULL}else{pk},
-                                                                                               if(is.na(pd)){NULL}else{pd})) # check the function for version up 
-    
-    sim_res_iiv <- sim_res_iiv[, .(P5 = quantile(value, 0.05),
-                                   P25 = quantile(value, 0.25),
-                                   P50 = quantile(value, 0.50),
-                                   P75 = quantile(value, 0.75),
-                                   P95 = quantile(value, 0.95)), by=.(Time,condi,variable)]
+    sim_res_iiv <- data.table::melt(sim_res_iiv,
+                                    id.vars = c("Time","condi"),
+                                    measure.vars = c(if(is.na(pk)){NULL}else{pk},
+                                                     if(is.na(pd)){NULL}else{pd})) %>%
+      .[, .(P5 = quantile(value, 0.05),
+            P25 = quantile(value, 0.25),
+            P50 = quantile(value, 0.50),
+            P75 = quantile(value, 0.75),
+            P95 = quantile(value, 0.95)), by=.(Time,condi,variable)] # summarize by its quantiles
     
     output$data_arr8 <- renderTable({sim_res_iiv})
     
@@ -1075,22 +1076,19 @@ server <- function(input, output, session) {
   
   
   output$param_table <- renderFormattable({
-    df_iiv <- est_table()[[3]]
+    prm_iivs <- est_table()[[3]]
     
-    df_iiv_sub <- unique(subset(df_iiv, select= -c(iiv_range, iiv_density, max_range, iiv_range_percent)))
-    df_iiv_sub <- df_iiv_sub[, c('param','Estimated','unit','Percentage')]
+    prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
+      unique(by="Param") %>%
+      select(-c(sim.id, Value, Z.score)) %>%
+      .[,`Change(%)` := Diff/Median*100] # changes in percent
     
-    colnames(df_iiv_sub) = c('Params','Estimated','Units','%') # rename header
-    rownames(df_iiv_sub) <- NULL
-    
-    df_iiv_sub$Estimated <- round(df_iiv_sub$Estimated,2) # rounding down to 2 digits
-    df_iiv_sub$'%' <- round(df_iiv_sub$'%',2) # rounding down to 2 digits
-    
+    # table output
     formattable(
-      df_iiv_sub,
+      prm_iivs_tbl,
       align = c("c"),
       list(
-        `%` = formatter(
+        `Change(%)` = formatter(
           "span",
           style = x ~ formattable::style(
             color = ifelse(x > 0, 'MediumSeaGreen', ifelse(x < 0, 'Salmon', "gray")))
