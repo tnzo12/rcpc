@@ -75,6 +75,7 @@ sim_res_noiiv <- sim_res_noiiv %>% data.table() %>%
   .[, ind_auc := lapply(.SD, auc, Time), .SDcols = "Estimated"] %>% 
   .[, dose_divide := cumsum(dosed == 1)] %>% 
   .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>% 
+  setnafill(cols = "auc_divide", fill=0)
   .[, tad := (Time - first(Time)), by=dose_divide] # time after dose
 #  .[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide]
 
