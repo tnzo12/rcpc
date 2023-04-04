@@ -1025,6 +1025,8 @@ server <- function(input, output, session) {
       .[, ind_auc := lapply(.SD, auc, time), .SDcols = pk] %>% # individual AUC by time
       .[, dose_divide := cumsum(dosed == 1)] %>% # cumulative dose grouping
       .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>% # cumulative individual AUC by time
+      .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>%
+      setnafill(cols = "auc_divide", fill=0) %>% 
       .[, tad := (time - first(time)), by=dose_divide] # time after dose
       #.[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide] # individual AUC
     

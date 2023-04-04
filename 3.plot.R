@@ -37,10 +37,10 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
 
 }
 
-# pharmacokinetic plot add-on
+# pharmacokinetic plot add-on (AUC)
 auc_plot <- function(noiiv, xlabel, ylabel){
   plot_ly(data=noiiv, showlegend = FALSE) %>%
-    add_bars(x = ~Time, y = ~auc_divide, name="AUC_tau", color = I("#9999FF"), showlegend = FALSE) %>%
+    add_bars(x = ~Time, y = ~auc_divide, name="AUC_tau", color = I("#9999FF"), opacity=0.6, showlegend = FALSE) %>%
     plotly::layout(xaxis = list(title = xlabel,
                                 color = "#999999"),
                    yaxis = list(title = ylabel,
