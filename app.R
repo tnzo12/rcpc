@@ -1,4 +1,3 @@
-#
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
@@ -13,7 +12,6 @@ library(rhandsontable)
 library(formattable)
 library(shinyWidgets)
 library(shinycssloaders)
-# test - github
 
 library(plotly)
 # Server side libraries ---------------
@@ -240,7 +238,7 @@ ui <- dashboardPage(
           Optimization Method for Outer Problem
                </i></span>"),
         choices = c("nlminb", "bobyqa", "lbfgsb3c", "L-BFGS-B", "mma", "lbfgsbLG", "slsqp", "Rvmmin"),
-        selected = "lbfgsbLG"
+        selected = "L-BFGS-B"
       ),
       selectInput(
         inputId = "inner_opt",
@@ -619,8 +617,11 @@ ui <- dashboardPage(
         br(),br(),
         tableOutput('sim_conc_sum'),
         htmlOutput('sim_time_sum')
-        
-        
+      ),
+      box(
+        width=12,
+        title = "Probability Target Attainment",
+        elevation = 2
       ),
       box(
         width=12,
@@ -991,62 +992,44 @@ server <- function(input, output, session) {
     
     
     
-    # Visual parametric diagnosis table (df_iiv), list[[3]]
-    eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
-    
-    df_iiv <- NULL
-    
-    for (i in 1:ncol(eta_table)){
-      
-      # options for normal distribution
-      iiv_range = seq(from=-(6*sd_eta[i]), to=(6*sd_eta[i]), length=3) # numeric range (6 sigma = 99.999% range)
-      iiv_density = dnorm(iiv_range, mean=0, sd=sd_eta[i]) # probability density
-      
-      df_params <- data.frame(
-        iiv_range,
-        iiv_density,
-        eta_group = paste0('eta',i), # grouping by eta
-        est_dif = eta_table[1,i],
-        param = unname(est_eta)[i],
-        unit = names(est_eta)[i]
-      )
-      
-      df_iiv <- rbind(df_iiv, df_params)
-    }
-    df_iiv <- df_iiv %>%
-      group_by(param) %>% 
-      mutate(max_range = max(iiv_range)) %>% 
-      mutate(Percentage = est_dif/max_range*100) %>% 
-      mutate(iiv_range_percent = scales::rescale(iiv_range, to=c(-100,100)))
-    
-    
-    fit_est <- data.frame("Estimated" = t(tail(fit.s[,est_eta], 1)))
-    fit_est <- tibble::rownames_to_column(fit_est, "param")
-    
-    df_iiv <- merge(df_iiv, fit_est)
-    
+
     # 'iiv' version for VPC(visual predictive check), 'no-iiv' version for simple simulation
-    
-    # estimated eta
+
+    # 1) estimated eta
+    eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
     ev_noiiv <- dplyr::bind_cols(ev, eta_table) # 'fixed' eta from final output
-    # randomized eta  
+    # 2) randomized eta   
     ev_iiv <- ev # final output. no corrections made from original event table
     
-    
-    
     # variable
+    dosep <- ev %>% filter(!is.na(amt)) %>% # dosing points
+      rowwise() %>% 
+      summarize(x = list(seq(from=time, to=(time + (addl+1)*ii), by = ii))) %>% 
+      unlist() %>% unname()
     hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
     hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
+
+    
     
     sim_start_time <- sim_start_time()
     # simulation without IIV: list[[1]] ------------------------
     sim_res_noiiv <- rxSolve(object = fit.s,
                              events = ev_noiiv,
                              nSub = 1) %>% 
-      mutate(date = hist_dose[1,"Date"] + (hist_time + time) %/% 24) %>% data.table() # date labeling, data.table
-
-    sim_res_noiiv[(hist_time + sim_res_noiiv$time) %% 24 != 0,"date"] <- NA
-    sim_res_noiiv$date <- format(sim_res_noiiv$date, "%m/%d")
+      mutate(date = hist_dose[1,"Date"] + (hist_time + time) %/% 24) %>%
+      data.table() %>% # date labeling, data.table
+      .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, NA, date)] %>% 
+      .[,date := format(date, "%m/%d")] %>% 
+      .[time %in% dosep, dosed := 1] %>% # check where dose was given
+      .[is.na(dosed), dosed := 0] %>%
+      .[, ind_auc := lapply(.SD, auc, time), .SDcols = pk] %>% # individual AUC by time
+      .[, dose_divide := cumsum(dosed == 1)] %>% # cumulative dose grouping
+      .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>% # cumulative individual AUC by time
+      .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>%
+      setnafill(cols = "auc_divide", fill=0) %>% 
+      .[, tad := (time - first(time)), by=dose_divide] # time after dose
+      #.[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide] # individual AUC
+    
     
     
     
@@ -1063,20 +1046,37 @@ server <- function(input, output, session) {
     sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_start_time),'est','sim')
     sim_res_iiv$condi[is.na(sim_res_iiv$condi)] <- 'est'
    
+    sim_res_iiv_param <- sim_res_iiv
     
-    sim_res_iiv <- data.table::melt(sim_res_iiv, id.vars = c("Time","condi"), measure.vars = c(if(is.na(pk)){NULL}else{pk},
-                                                                                               if(is.na(pd)){NULL}else{pd})) # check the function for version up 
-    
-    sim_res_iiv <- sim_res_iiv[, .(P5 = quantile(value, 0.05),
-                                   P25 = quantile(value, 0.25),
-                                   P50 = quantile(value, 0.50),
-                                   P75 = quantile(value, 0.75),
-                                   P95 = quantile(value, 0.95)), by=.(Time,condi,variable)]
+    sim_res_iiv <- data.table::melt(sim_res_iiv,
+                                    id.vars = c("Time","condi"),
+                                    measure.vars = c(if(is.na(pk)){NULL}else{pk},
+                                                     if(is.na(pd)){NULL}else{pd})) %>%
+      .[, .(P05 = quantile(value, 0.05),
+            P25 = quantile(value, 0.25),
+            P50 = quantile(value, 0.50),
+            P75 = quantile(value, 0.75),
+            P95 = quantile(value, 0.95)), by=.(Time,condi,variable)] # summarize by its quantiles
     
     output$data_arr8 <- renderTable({sim_res_iiv})
     
     
-    list(sim_res_noiiv, sim_res_iiv, df_iiv) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
+    # visual parameter diagnostics (prm_iivs), list[[3]]
+    prm_iivs <- dplyr::bind_rows(sim_res_iiv_param, sim_res_noiiv) %>% 
+      .[, sim.id, mget(est_eta)] %>%
+      .[,lapply(.SD, mean),by=.(sim.id)] %>%
+      .[,paste0(est_eta,".z"):=lapply(.SD,scale), .SDcols = est_eta] %>% 
+      setnames(old = est_eta, new = paste0(est_eta,".v")) %>% 
+      data.table::melt(id.vars = 'sim.id',
+                       measure.vars = patterns("v$","z$"), # column names ends with v and z
+                       variable.name= "Param",
+                       value.name = c("Value","Z.score")) %>% 
+      .[,`:=`(Value=round(Value,3), Z.score=round(Z.score,3))] %>% # rounding 
+      .[,Param:=as.factor(est_eta)[Param]]
+    
+    
+    # list generated data
+    list(sim_res_noiiv, sim_res_iiv, prm_iivs) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
     
   })
   
@@ -1084,48 +1084,29 @@ server <- function(input, output, session) {
   
   
   output$param_vis <- renderPlotly({
-    df_iiv <- est_table()[[3]]
     
-    # plot
-    ggp <- ggplot(df_iiv,aes(x=param, y=iiv_range_percent, width=iiv_density, fill=param)) +
-      geom_violin(aes(color=param),trim=FALSE, alpha=0.5) +
-      geom_point(aes(y=Percentage, color=param), alpha=0.15, shape=16, size=3) +
-      xlab("Parameter") +
-      ylab("Variability (%)") +
-      theme(legend.position='none',
-            plot.background = element_rect(fill='transparent',colour=NA),
-            panel.background = element_rect(fill='transparent',colour=NA),
-            panel.grid.major = element_line(colour='grey70', size=0.05),
-            panel.grid.minor = element_line(colour='grey70', size=0.05),
-            axis.title.x = element_text(colour='grey70'),
-            axis.title.y = element_text(colour='grey70'),
-            axis.text = element_text(colour='grey70'),
-            axis.ticks = element_line(colour='transparent', size=0.05)
-      )
-    
-    ggplotly(ggp, tooltip = c("Percentage"))
+    prm_iivs <- est_table()[[3]]
+    # visual parameter diagnostic plot
+    vis_param(prm_iivs)
     
   })
   
   
   
   output$param_table <- renderFormattable({
-    df_iiv <- est_table()[[3]]
+    prm_iivs <- est_table()[[3]]
     
-    df_iiv_sub <- unique(subset(df_iiv, select= -c(iiv_range, iiv_density, max_range, iiv_range_percent)))
-    df_iiv_sub <- df_iiv_sub[, c('param','Estimated','unit','Percentage')]
+    prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
+      unique(by="Param") %>%
+      select(-c(sim.id, Value, Z.score)) %>%
+      .[,`Change(%)` := round(Diff/Median*100,2)] # changes in percent
     
-    colnames(df_iiv_sub) = c('Params','Estimated','Units','%') # rename header
-    rownames(df_iiv_sub) <- NULL
-    
-    df_iiv_sub$Estimated <- round(df_iiv_sub$Estimated,2) # rounding down to 2 digits
-    df_iiv_sub$'%' <- round(df_iiv_sub$'%',2) # rounding down to 2 digits
-    
+    # table output
     formattable(
-      df_iiv_sub,
+      prm_iivs_tbl,
       align = c("c"),
       list(
-        `%` = formatter(
+        `Change(%)` = formatter(
           "span",
           style = x ~ formattable::style(
             color = ifelse(x > 0, 'MediumSeaGreen', ifelse(x < 0, 'Salmon', "gray")))
@@ -1166,46 +1147,13 @@ server <- function(input, output, session) {
         filter(variable == pk)
       
       # plot
-      pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label)
+      subplot(
+        pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label),
+        auc_plot(sim_res_noiiv, pk_x_label, pk_y_label),
+        nrows = 2, heights = c(0.85, 0.15), shareX = TRUE
+      )
       
       
-      
-      #ggplotly(
-      #  ggplot(sim_res_noiiv) +
-      #    
-      #    scale_fill_manual(values=c(pk_color, '#999999')) +
-      #    scale_color_manual(values=c(pk_color, '#999999')) +
-      #    
-      #    geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P5, ymax=P95, fill=condi), alpha=0.15) +
-      #    geom_ribbon(data=sim_res_iiv, aes(x=Time, ymin=P25, ymax=P75, fill=condi), alpha=0.25) +
-      #    geom_line(data=sim_res_iiv, aes(x=Time, y=P50, color=condi), size=0.6, alpha=0.4, linetype="dashed") +
-      #    
-      #    geom_line(aes(x=Time, y=Estimated, color=condi), size=0.6) +
-      #    geom_point(data = base::subset(fit.s, CMT==pk_obs),
-      #               color = pk_color,
-      #               aes(x=Time, y=DV)) +
-      #    geom_errorbar(data = base::subset(fit.s, CMT==pk_obs),
-      #                  color = pk_color,
-      #                  aes(x=Time, y=DV, ymax=DV+IRES, ymin=DV-IRES),width=1) +
-      #    geom_text(color = 'gray65',
-      #              aes(x=Time, y=Estimated, label=date), size=3.5) +
-      #    xlab(pk_x_label) +
-      #    ylab(pk_y_label) +
-      #    #scale_x_continuous(breaks=seq(0,720,12), # from 0 ~ 720 by 12
-      #    #                   minor_breaks=seq(6,720,12)) + # from 6 ~ 720 by 12
-      #    #scale_y_continuous(breaks=seq(0,150,5)) +
-      #    # ggplot theme setting
-      #    theme(legend.position='none',
-      #          plot.background = element_rect(fill='transparent',colour=NA),
-      #          panel.background = element_rect(fill='transparent',colour=NA),
-      #          panel.grid.major = element_line(colour='grey70', size=0.05),
-      #          panel.grid.minor = element_line(colour='grey70', size=0.05),
-      #          axis.title.x = element_text(colour='grey70'),
-      #          axis.title.y = element_text(colour='grey70'),
-      #          axis.text = element_text(colour='grey70'),
-      #          axis.ticks = element_line(colour='transparent', size=0.05)
-      #    )
-      #)
     }
   })
   
