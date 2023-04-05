@@ -850,8 +850,8 @@ server <- function(input, output, session) {
       hot_to_r(input$sim_doseh) %>% mutate(condi='sim')
       ) %>%
       tidyr::fill(c('Date', 'Route'), .direction = "down") %>%
-      mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Inter'), ~replace_na(., 0)) %>% 
-      mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
+      mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Rep', 'Inter'), ~replace_na(., 0)) %>% 
+      #mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
       # data processing (NONMEM-like format)
       filter(Amt != 0) %>% # get rid of the unused dosing (dosing amount of 0)
       rename(AMT = Amt, ADDL = Rep, II = Inter, SS = Steady) %>% # rename columns
@@ -961,27 +961,26 @@ server <- function(input, output, session) {
       mutate(evid = MDV,
              amt = 0) %>% dplyr::select(time, evid, all_of(mod_cov), CRPZERO)
     
-    est_hist <- subset(hist_data(), condi=='est' & ID==input$ID) %>% replace(is.na(.), 0) %>% tail(1)
+    est_hist <- subset(hist_data(), condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
     
     est_endtime <- est_hist[1,"TIME"] + (est_hist[1,"ADDL"] * est_hist[1,"II"]) + 24 # set endtime
     
-    ev <- eventTable() %>% 
-      add.sampling(seq(from=0, to=as.numeric(max( # follows the bigger record between simulation and estimation dosing history
+    ev <- et() %>% 
+      et(seq(from=0, to=as.numeric(max( # follows the bigger record between simulation and estimation dosing history
         hist_data$TIME[nrow(hist_data)]+input$sim_obs_period*24,
         est_endtime
-      )), by=input$step_size)) # by 0.25 hour = 15 min, tracking for additional 48 hours
-    
-    # add dosing event (reading the history table written)
-    for (i in 1:nrow(amt_data)){
-      ev$add.dosing(dose = amt_data[i,"AMT"],
-                    rate = amt_data[i,"RATE"],
-                    nbr.doses = amt_data[i,"ADDL"],
-                    dosing.interval = amt_data[i,"II"],
-                    start.time = amt_data[i,"TIME"],
-                    ss = amt_data[i,"SS"])
-    }
-    
-    ev <- merge(ev, cov_data, all=TRUE) %>% # merge (outer join)
+      )), by=input$step_size)) %>% # by 0.25 hour = 15 min, tracking for additional 48 hours
+      merge(fit.s$origData %>%
+              rename_all(tolower) %>%
+              filter(!is.na(amt)) %>%
+              select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
+      #et(amt = amt_data$AMT, # add dosing event (reading the history table written)
+      #   rate = amt_data$RATE,
+      #   addl = amt_data$ADDL,
+      #   ii = amt_data$II,
+      #   time = amt_data$TIME,
+      #   ss = amt_data$SS) %>% 
+      merge(cov_data, all=TRUE) %>% # merge (outer join)
       tidyr::fill(mod_cov, .direction = "downup") %>% # to fill NAs in the event table
       tidyr::fill("CRPZERO", .direction = "downup")
     # ev table will be transferred into 'eta' version or 'no-eta' version
@@ -1002,9 +1001,9 @@ server <- function(input, output, session) {
     ev_iiv <- ev # final output. no corrections made from original event table
     
     # variable
-    dosep <- ev %>% filter(!is.na(amt)) %>% # dosing points
+    dosep <- ev %>% data.frame() %>% filter(!is.na(amt)) %>% # dosing points
       rowwise() %>% 
-      summarize(x = list(seq(from=time, to=(time + (addl+1)*ii), by = ii))) %>% 
+      summarize(x = list(seq(from=time, to=(time + (if_else(is.null(addl),0,addl))*ii), by = ii))) %>% 
       unlist() %>% unname()
     hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
     hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
