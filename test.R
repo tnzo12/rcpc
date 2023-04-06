@@ -139,14 +139,46 @@ sim_p2 <- sim_p[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Val
 # event table
 ev <- et() %>%
   et(seq(0, 24, length.out=100)) %>%
-  merge(fit$origData %>% rename_all(tolower) %>% filter(!is.na(amt)) %>% select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
-  et(amt=c(10000,2), addl=0, ii=c(12,6), ss=c(1,1), time=c(2,3), rate=10000) %>% 
+  et(amt=c(10000,2), addl=c(1,NA), ii=c(12,6), ss=c(1,1), time=c(5,3), rate=10000) %>% 
   merge(data.frame(data=1), all=TRUE)
+
 str(ev)
 
 ev <- ev %>% 
   filter(!is.na(amt)) %>% 
   rowwise() %>% 
+  mutate(addl = ifelse('addl' %in% names(.), addl, NA)) %>% 
   mutate(to = time + addl*ii)
-  summarise(x = list(seq(from=time, to=(time + addl*ii), by = ii)))
+  summarize_at(x = list(seq(from=time, to=(time + addl*ii), by = ii)))
 
+
+  
+hist_data <- rbind(
+  c(19453.00,	0.00,	0.00,	0.00,	NA,	NA,	0.00,	0.00,	2.00,	'est',	NA,	NA,	NA,	NA,	NA,	NA,	0.00,	201950471,	0.00),
+  c(19453.00,	0.00,	0.00,	NA,	NA,	NA,	1.00,	1.00,	1.00,	'est',	'IV',	10.00,	6.00,	6.00,	0.00,	10.00,	0.00,	201950471,	0.00),
+  c(19453.00,	1.00,	0.00,	15.00,	32.00,	1.00,	0.00,	0.00,	1.00,	'est',	NA,	NA,	NA,	NA,	NA,	NA,	1.00,	201950471,	0.00),
+  c(19455.00,	0.00,	0.00,	NA,	NA,	NA,	1.00,	1.00,	1.00,	'sim',	'IV',	10.00,	0.00,	0.00,	0.00,	0.00,	48.00,	201950471,	0.00),
+  c(19455.00,	0.00,	0.00,	NA,	NA,	NA,	1.00,	1.00,	1.00,	'sim',	'IV',	15.00,	0.00,	0.00,	0.00,	0.00,	54.00,	201950471,	0.00)
+) %>% data.frame()
+names(hist_data) <- c('Date','Hour','Min','DV','PCA','WT','MDV','EVID','CMT','condi','Route','AMT','ADDL','II','SS','RATE','TIME','ID','CRPZERO')
+
+hist_data <- hist_data %>% mutate_at(vars("TIME","ADDL","II","RATE","SS","AMT","EVID"), as.numeric)
+
+est_hist <- subset(hist_data, condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
+
+est_endtime <- est_hist[1,"TIME"] + (est_hist[1,"ADDL"] * est_hist[1,"II"]) + 24 # set endtime
+
+amt_data <- subset(hist_data, !is.na(hist_data$AMT))
+
+ev <- et() %>% 
+  et(seq(from=0, to=as.numeric(max( # follows the bigger record between simulation and estimation dosing history
+    hist_data$TIME[nrow(hist_data)] + 5*24,
+    est_endtime
+  )), by=0.25)) %>% # by 0.25 hour = 15 min, tracking for additional 48 hours
+  bind_rows(
+    amt_data %>% select(ID, TIME, CMT, AMT, RATE, II, ADDL, EVID, SS) %>% mutate(ID = 1) %>% rename_all(tolower)
+  ) %>% arrange(time)
+
+ev %>% filter(!is.na(amt))
+
+amt_data$TIME
