@@ -961,7 +961,7 @@ server <- function(input, output, session) {
       mutate(evid = MDV,
              amt = 0) %>% dplyr::select(time, evid, all_of(mod_cov), CRPZERO)
     
-    est_hist <- subset(hist_data(), condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
+    est_hist <- subset(hist_data, condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
     
     est_endtime <- est_hist[1,"TIME"] + (est_hist[1,"ADDL"] * est_hist[1,"II"]) + 24 # set endtime
     
@@ -970,16 +970,10 @@ server <- function(input, output, session) {
         hist_data$TIME[nrow(hist_data)]+input$sim_obs_period*24,
         est_endtime
       )), by=input$step_size)) %>% # by 0.25 hour = 15 min, tracking for additional 48 hours
-      merge(fit.s$origData %>%
+      merge(hist_data %>%
               rename_all(tolower) %>%
               filter(!is.na(amt)) %>%
               select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
-      #et(amt = amt_data$AMT, # add dosing event (reading the history table written)
-      #   rate = amt_data$RATE,
-      #   addl = amt_data$ADDL,
-      #   ii = amt_data$II,
-      #   time = amt_data$TIME,
-      #   ss = amt_data$SS) %>% 
       merge(cov_data, all=TRUE) %>% # merge (outer join)
       tidyr::fill(mod_cov, .direction = "downup") %>% # to fill NAs in the event table
       tidyr::fill("CRPZERO", .direction = "downup")
@@ -1003,7 +997,10 @@ server <- function(input, output, session) {
     # variable
     dosep <- ev %>% data.frame() %>% filter(!is.na(amt)) %>% # dosing points
       rowwise() %>% 
-      summarize(x = list(seq(from=time, to=(time + (if_else(is.null(addl),0,addl))*ii), by = ii))) %>% 
+      mutate(addl = ifelse('addl' %in% names(.), addl, 0)) %>% # add addl label if it does not exist
+      summarize(
+        x = list(seq(from=time, to=(time + addl*ii), by = ii))
+      ) %>% 
       unlist() %>% unname()
     hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
     hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
