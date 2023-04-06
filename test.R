@@ -1,9 +1,9 @@
 # fitting
 
-name <- c("Hour", "Min", "CrCL", "WT", "MDV", "CMT", "DV", "condi", "Route", "EVID", "AMT", "RATE", "ADDL", "II", "TIME", "ID", "CRPZERO", "PCA")
-row1 <- c(0, 0, NA, NA, 1, 1, NA, "est", "IV", 1, 60, 60, 6, 6, 0, 1234, 10, 32)
-row2 <- c(2, 0, 32, 15, 0, 1, 30, "est", NA, 0, NA, NA, NA, NA, 1, 1234, 10, 32)
-row3 <- c(2, 0, 32, 15, 0, 2, 10, "est", NA, 0, NA, NA, NA, NA, 0, 1234, 10, 32)
+name <- c("Hour", "Min", "CrCL", "WT", "MDV", "CMT", "DV", "condi", "Route", "EVID", "AMT", "RATE", "ADDL", "II", "TIME", "ID", "CRPZERO", "PCA", "SS")
+row1 <- c(0, 0, NA, NA, 1, 1, NA, "est", "IV", 1, 60, 60, 6, 6, 0, 1234, 10, 32, 0)
+row2 <- c(2, 0, 32, 15, 0, 1, 30, "est", NA, 0, NA, NA, NA, NA, 1, 1234, 10, 32, 0)
+row3 <- c(2, 0, 32, 15, 0, 2, 10, "est", NA, 0, NA, NA, NA, NA, 0, 1234, 10, 32, 0)
 
 df <- rbind(row1, row2, row3) %>% data.frame %>% mutate_all(as.numeric)
 names(df) <- name
@@ -135,4 +135,18 @@ sim_p2 <- sim_p[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Val
   .[,`Change(%)` := Diff/Median*100] # changes in percent
 
 
+
+# event table
+ev <- et() %>%
+  et(seq(0, 24, length.out=100)) %>%
+  merge(fit$origData %>% rename_all(tolower) %>% filter(!is.na(amt)) %>% select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
+  et(amt=c(10000,2), addl=0, ii=c(12,6), ss=c(1,1), time=c(2,3), rate=10000) %>% 
+  merge(data.frame(data=1), all=TRUE)
+str(ev)
+
+ev <- ev %>% 
+  filter(!is.na(amt)) %>% 
+  rowwise() %>% 
+  mutate(to = time + addl*ii)
+  summarise(x = list(seq(from=time, to=(time + addl*ii), by = ii)))
 
