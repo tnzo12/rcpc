@@ -33,6 +33,7 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
     add_segments(data = base::subset(fit, CMT==cmt),
                  x= ~Time, xend = ~Time, y = ~DV, yend = ~DV-IRES,
                  color = I(colr),# line = list(color = colr),
+                 line = list(dash = "dot"),
                  showlegend = FALSE, name = "prediction err") # error
 
 }
