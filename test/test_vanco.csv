@@ -1,21 +1,20 @@
-,,,,,,,,,
-1. chu,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
+chu,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
 ,,0,0,IV,1000,1,10,8,0
 ,Observation History,Hour,Min,Type,Val,age,,,
 ,,10,0,SDC,10,40,,,
-2. shen,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
+shen,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
 ,,0,0,IV,1000,1,10,12,0
 ,Observation History,Hour,Min,Type,Val,CLCR,Age,,
 ,,24,0,SDC,11,86,61,,
-3. jing,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
+jing,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
 ,,0,0,IV,1000,1,8,8,0
 ,Observation History,Hour,Min,Type,Val,gfr,Age,,
 ,,24,0,SDC,10,160.44,70,,
-4. ji,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
+ji,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
 ,,0,0,IV,1000,1,8,12,0
 ,Observation History,Hour,Min,Type,Val,CLCR,Age,,
 ,,12,0,SDC,12,58,72,,
-5. alqahtani,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
+alqahtani,Dosing History,Hour,Min,Route,Amt,Dur,Rep,Inter,Steady
 ,,0,0,IV,1500,1,8,12,0
 ,Observation History,Hour,Min,Type,Val,CLCR,Alb,WT,
 ,,12,0,SDC,6.45,83.5,35.5,79.6,
