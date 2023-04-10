@@ -103,7 +103,7 @@ mods_server <- function(id, drug_selection, model){
           linkDistance = 60,
           linkColour = 'lightgrey',
           colourScale = my_color,
-          charge = -10,
+          charge = -100,
           Source = 's_idx',
           Target = 't_idx',
           NodeID = 'node',
