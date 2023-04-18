@@ -13,14 +13,14 @@ des_abbr_ui <- function(id){ # ui for description
 }
 
 # Server ------------------------------
-des_server <- function(id, mod_env, model){
+des_server <- function(id, mod_env, values){
   shiny::moduleServer(id, function(input, output, session) {
     
     # Model description
     # based on loaded model environment
     output[["des_model"]] <- renderPrint({
       mod_env()
-      model <- model()
+      model <- values$model
       cat(
         '<span style="color:grey">',
         "<i>Model of</i>",

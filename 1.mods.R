@@ -45,22 +45,26 @@ cov_temp <- data.table::rbindlist(cov_temp, fill=TRUE) %>%
 # UI --------------------------------------------
 mods_ui <- function(id) { # ui for theta
   ns <- shiny::NS(id)
-  shiny::uiOutput(ns("mod_netwk"),
-                  width = '100%',
-                  height = '300px')
+  tagList(
+    shiny::uiOutput(ns("drugs")),
+    shiny::uiOutput(ns("mod_netwk"),
+                    width = '100%',
+                    height = '300px')
+  )
 } # ui function ends
 
 
 # Server ----------------------------------------
-mods_server <- function(id, drug_selection, model){
+mods_server <- function(id, values){
   shiny::moduleServer(id, function(input, output, session) {
     
    
     # Network Visualization::networkD3
     selected_drug <- shiny::reactive({
       
-      drug_selection <- drug_selection()
-      model <- model()
+      drug_selection <- values$drug_selection
+      model <- values$model
+      
       #drug_selection <- 'Vancomycin'
       #model <- 'Jung'
       selected_drug <- filter(cov_temp, Drug==drug_selection) %>% select(-Drug) %>% data.frame
@@ -89,7 +93,7 @@ mods_server <- function(id, drug_selection, model){
     # Visualization of drug-network
     
     
-    output[["mod_netwk"]] <- shiny::renderUI({
+    output$mod_netwk <- shiny::renderUI({
       ns <- session$ns
       networkD3::renderForceNetwork({
         
@@ -115,6 +119,18 @@ mods_server <- function(id, drug_selection, model){
         )
         
       })
+    })
+    
+    output$drugs <- shiny::renderUI({
+      ns <- session$ns
+      shiny::selectInput(
+        
+        inputId = 'drug_selection',
+        label = 'Select drug',
+        choices = c(list.files("./drug/")),
+        selected = values$drug_selection
+        
+      )
     })
     
 #    output[["param_theta_view"]] <- shiny::renderUI({

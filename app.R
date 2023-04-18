@@ -256,7 +256,11 @@ ui <- dashboardPage(
                </i></span>")
       
       
-    )
+    ),
+    HTML("&nbsp;"), # spacing
+    shiny::actionButton(inputId = "save_button", label = "Save"),
+    HTML("&nbsp;"), # spacing
+    shiny::actionButton(inputId = "load_button", label = "Load")
   ),
   
   dashboardSidebar(
@@ -288,7 +292,7 @@ ui <- dashboardPage(
         width=12,
         box(
           width=12,
-          title = "INFORMATION", # =====================================================
+          title = "INFORMATION", # ======================================================
           collapsed = TRUE,
           background = 'gray',
           gradient = FALSE,
@@ -296,6 +300,14 @@ ui <- dashboardPage(
           "Information about the patient should put"
           
         )    
+      )
+    ),
+    fluidRow(
+      box(
+        width=12,
+        title="Upload",
+        elevation = 2,
+        shiny::fileInput(inputId = "fileInput", label = "select file")
       )
     ),
     fluidRow(
@@ -381,13 +393,8 @@ ui <- dashboardPage(
         title = "Model Selection",
         elevation = 2,
         
-        selectInput(
-          
-          inputId = 'drug_selection',
-          label = 'Select drug',
-          choices = c(list.files("./drug/"))
-          
-        ),
+        mods_ui("drugs"),
+        
         HTML("<span style='color:grey'><i>
           [Click on a node to select model]
                </i></span>"),
@@ -695,21 +702,32 @@ ui <- dashboardPage(
 # Server ========================================
 server <- function(input, output, session) {
   
-  drug_selection <- shiny::reactive({ input$drug_selection }) # selected drug in picker
-  model <- shiny::reactive({ input$model }) # selected model in network
+  values <- shiny::reactiveValues() # reactive values storage
+ 
+  observeEvent(input$drug_selection, {
+    values$drug_selection <-input$drug_selection # selected drug in picker
+  })
+  observeEvent(input$model, {
+    values$model <- input$model # selected model in network  
+  })
   
+  
+
   # model module server
-  mods_server("mod_netwk", drug_selection, model) # select drug/model -> force network vis
-  des_server("des_model", mod_env, model)
-  des_server("des_notes", mod_env, model)
-  des_server("des_abbr", mod_env, model)  # Load selected model environment
+  mods_server("drugs",values) # select model -> force network vis
+  des_server("des_model", mod_env, values)
+  des_server("des_notes", mod_env, values)
+  des_server("des_abbr", mod_env, values)  # Load selected model environment
   
+  
+  # model environment
   mod_env <- reactive({
     
-    drug_selection <- drug_selection()
-    model <- model()
+    drug_selection <- values$drug_selection
+    model <- values$model
     
     ifelse(
+      # if
       sum(paste0(
         drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
                                       pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
@@ -730,6 +748,7 @@ server <- function(input, output, session) {
     
     
   }) # Loading model environment ends
+  
   
   output$pat_info <- renderPrint({
     cat(
@@ -757,11 +776,12 @@ server <- function(input, output, session) {
   # Model based input table
   
   # Generating model specific table
-  input_table <- reactive({
-    mod_env()
-    
-    # Dosing initial state: list[[1]]
-    df_doseh_ini <- data.frame(Date=Sys.Date(),
+  observeEvent(
+    eventExpr = {
+      mod_env()
+    },
+    handlerExpr = {
+    values$doseh_ini <- data.frame(Date=Sys.Date(),
                                Hour=0,
                                Min=0,
                                Route=mod_route,
@@ -771,18 +791,18 @@ server <- function(input, output, session) {
                                Inter=as.numeric(NA),
                                Steady=0,
                                stringsAsFactors = FALSE)
-    # Observation initial state: list[[2]]
-    df_obsh_ini <- data.frame(Date=Sys.Date(),
+    
+    values$obsh_ini <- data.frame(Date=Sys.Date(),
                               Hour=0,
                               Min=0,
                               Type=mod_obs,
                               Val=as.numeric(NA),
-                              stringsAsFactors = FALSE)
-    for (i in 1:length(mod_cov) ){
-      df_obsh_ini[ mod_cov[i] ] <- as.numeric(NA)
-    }
-    # Dosing initial state: list[[3]]
-    df_sim_doseh_ini <- data.frame(Date=Sys.Date()+1,
+                              stringsAsFactors = FALSE) %>% 
+      dplyr::bind_cols( # add columns for covariates
+        matrix(ncol=length(mod_cov)) %>% data.frame() %>% mutate_all(as.numeric) %>% setNames(mod_cov)
+      )
+    
+    values$sim_doseh_ini <- data.frame(Date=Sys.Date()+1, # add one day from history
                                    Hour=0,
                                    Min=0,
                                    Route=mod_route,
@@ -792,30 +812,24 @@ server <- function(input, output, session) {
                                    Inter=as.numeric(NA),
                                    Steady=0,
                                    stringsAsFactors = FALSE)
-    
-    list(df_doseh_ini, # [[1]]
-         df_obsh_ini, # [[2]]
-         df_sim_doseh_ini) # [[3]]
   })
   
   
   # Uploading generated (updated by node selection) table
   output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
     mod_env()
-    rhandsontable(input_table()[[1]], rowHeaders = NULL, stretchH = "all") %>% 
+    rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
       hot_col(col = "Route", type = "dropdown", source = mod_route) %>% 
       hot_col(col = "Hour", default = 0) %>% 
       hot_col(col = "Min", default = 0) %>% 
       #hot_cols(renderer=renderer, halign = "htCenter")
       hot_cols(halign = "htCenter")
     
-    
-    
   })
   
   output$obsh <- renderRHandsontable({ # needed observation types will appear in this table
     mod_env()
-    rhandsontable(input_table()[[2]], rowHeaders = NULL,stretchH = "all") %>% 
+    rhandsontable(values$obsh_ini, rowHeaders = NULL,stretchH = "all") %>% 
       hot_col(col = "Type", type = "dropdown", source = mod_obs) %>% 
       hot_col(col = "Hour", default = 0) %>% 
       hot_col(col = "Min", default = 0) %>% 
@@ -826,7 +840,7 @@ server <- function(input, output, session) {
   
   output$sim_doseh <- renderRHandsontable({ # needed administration routes will appear in this table
     mod_env()
-    rhandsontable(input_table()[[3]], rowHeaders = NULL, stretchH = "all") %>% 
+    rhandsontable(values$sim_doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
       hot_col(col = "Route", type = "dropdown", source = mod_route) %>% 
       hot_col(col = "Hour", default = 0) %>% 
       hot_col(col = "Min", default = 0) %>% 
@@ -847,8 +861,7 @@ server <- function(input, output, session) {
     # Loading dosing history from ui input
     doseh <- dplyr::bind_rows( # combining estimation/simulation dataset
       hot_to_r(input$doseh) %>% mutate(condi='est'),
-      hot_to_r(input$sim_doseh) %>% mutate(condi='sim')
-      ) %>%
+      hot_to_r(input$sim_doseh) %>% mutate(condi='sim')) %>%
       tidyr::fill(c('Date', 'Route'), .direction = "down") %>%
       mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Rep', 'Inter'), ~replace_na(., 0)) %>% 
       #mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
@@ -862,6 +875,7 @@ server <- function(input, output, session) {
     
     output$dosehis <- renderTable({doseh})
     
+    
     # Loading observation history from ui input
     obsh <- hot_to_r(input$obsh) %>% 
       tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
@@ -872,10 +886,8 @@ server <- function(input, output, session) {
              condi = 'est') %>% # labeling: estimation dataset
       rename(DV = Val)
     
-    
-    
-    
     output$obshis <- renderTable({obsh}) # debugging table, observation history
+    
     
     f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
       arrange(Date, Hour, Min) %>% # Time ordering
@@ -900,6 +912,7 @@ server <- function(input, output, session) {
     f_data
   })
   
+
   
   sim_start_time <- reactive({ # simulation start time
     sim_hist <- subset(hist_data(), condi=='sim' & ID==input$ID)
@@ -935,11 +948,7 @@ server <- function(input, output, session) {
     fit.s <- fit.s %>%
       mutate(CMT = if(is.null(fit.s$CMT)) {pk_obs} else {mod_obs[as.numeric(CMT)]} ) %>% 
       rename(Time = TIME)
-    #ifelse(is.null(fit.s$CMT), # condition
-           #fit.s$CMT <- mod_comp[pk_obs], # TRUE (=CMT is null)
-    #       fit.s$CMT <- pk_obs, # TRUE (=CMT is null)
-    #       fit.s$CMT <-  mod_obs[as.numeric(fit.s$CMT)]) # FALSE (=CMT is not null)
-    
+
     fit.s
   })
   
@@ -948,7 +957,7 @@ server <- function(input, output, session) {
   
   
   # estimation table for plot =======================================
-  est_table <- reactive({ # Dose simulation on simulation box
+  est_table <- eventReactive(input$run_button, { # Dose simulation on simulation box
     
     mod_env()
     fit.s <- fit.s() # fitted data
@@ -959,7 +968,7 @@ server <- function(input, output, session) {
     cov_data <- subset(hist_data, MDV==0) %>%
       rename(time = TIME) %>%
       mutate(evid = MDV,
-             amt = 0) %>% dplyr::select(time, evid, all_of(mod_cov), CRPZERO)
+             amt = 0) %>% dplyr::select(time, evid, any_of(mod_cov), CRPZERO)
     
     est_hist <- subset(hist_data, condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
     
@@ -975,7 +984,7 @@ server <- function(input, output, session) {
               filter(!is.na(amt)) %>%
               select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
       merge(cov_data, all=TRUE) %>% # merge (outer join)
-      tidyr::fill(mod_cov, .direction = "downup") %>% # to fill NAs in the event table
+      tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
       tidyr::fill("CRPZERO", .direction = "downup")
     # ev table will be transferred into 'eta' version or 'no-eta' version
     
@@ -1341,6 +1350,30 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # data management (save and load)
+  # save
+  observeEvent(input$save_button, {
+    values$doseh <- hot_to_r(input$doseh) # save dosing history to values
+    values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
+    values$obsh <- hot_to_r(input$obsh) # save observation history to values
+    saveRDS(values, paste0("./temp/",input$ID,".rds"))
+  })
+  # load
+  observeEvent(input$load_button, {
+    loaded <- readRDS( paste0("./temp/",input$ID,".rds") )
+    
+    values$drug_selection <- loaded$drug_selection
+    values$model <- loaded$model
+    
+    values$doseh_ini <- loaded$doseh # previous table to initial state
+    values$sim_doseh_ini <- loaded$sim_doseh
+    values$obsh_ini <- loaded$obsh
+    
+  })
+  
+  
+
   output$data_arr <- renderTable({ hist_data() })
   output$data_arr2 <- renderTable({ est_table()[[1]] }) # noiiv simtab
   output$data_arr3 <- renderTable({ sim_summary()[[3]] })
