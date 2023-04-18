@@ -15,7 +15,7 @@ des_params <- c("- V: volume of distritubtion (Phenobarbital)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("FFM", "PMA", "AGE", "PHENY", "MIDAZ", "PANTOP", "SCR")
+mod_cov <- c("FFM", "PNA", "AGE", "PHENY", "MIDAZ", "PANTOP", "SCR")
 mod_cov_abbr <- c("Fat free mass(kg)", "Postmenstrual age(wk)", "age(y)", "phenytoin (yes/no)", "midazolam(yes/no)", "pantoprazole(yes/no)", "SCR")
 
 mod_route <- c("IV", "enteral")
@@ -59,7 +59,7 @@ f <- function() {
     theta3 <- c(0.89)        # F
     theta4 <- c(0.8)         # KAFIX
     theta5 <- c(0.265)       # CL- SCR
-    theta6 <- c(-4.22)       # CL- PMA
+    theta6 <- c(-4.22)       # CL- PNA
     theta7 <- c(0.596)       # CL- PHENY
     theta8 <- c(0.761)       # CL- MIDAZ
     theta9 <- c(1.25)        # CL- PANTOP
@@ -73,7 +73,7 @@ f <- function() {
 
     fdepot <- theta3
     
-    cl <-  ((FFM/70)**0.75) * (0.4/SCR)**theta5 * (1/(1+(PMA/41)**theta6)) * theta7**PHENY * theta8**MIDAZ * theta9**PANTOP * exp(theta1 + eta1)
+    cl <-  ((FFM/70)**0.75) * (0.4/SCR)**theta5 * (1/(1+((PNA/7 + 40)/41)**theta6)) * theta7**PHENY * theta8**MIDAZ * theta9**PANTOP * exp(theta1 + eta1)
     v <- (FFM/70) * theta10**log(AGE/0.04384) * exp(theta2 + eta2) 
     ke = cl/v
     
