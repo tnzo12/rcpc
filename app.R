@@ -307,7 +307,10 @@ ui <- dashboardPage(
         width=12,
         title="Upload",
         elevation = 2,
-        shiny::fileInput(inputId = "fileInput", label = "select file")
+        tableOutput("files"),
+        shiny::fileInput(inputId = "upload", label = "select file", multiple = TRUE,
+                         accept = ".rds"),
+        downloadButton("download", "Download the files")
       )
     ),
     fluidRow(
@@ -710,9 +713,58 @@ server <- function(input, output, session) {
   observeEvent(input$model, {
     values$model <- input$model # selected model in network  
   })
+  observeEvent(input$load_button, {
+    values$load_button <- input$load_button
+  })
   
   
+  # data management (save and load)
+  # save
+  observeEvent(input$save_button, {
+    values$doseh <- hot_to_r(input$doseh) # save dosing history to values
+    values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
+    values$obsh <- hot_to_r(input$obsh) # save observation history to values
+    saveRDS(serialize(
+      list(drug_selection = values$drug_selection, # select values to save
+           model = values$model,
+           doseh = values$doseh,
+           sim_doseh = values$sim_doseh,
+           obsh = values$obsh),
+      connection = NULL), paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds"))
+  })
+  # load
+  observeEvent(input$load_button, {
+    loaded <- unserialize(
+      readRDS( paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds") )
+    )
+    
+    values$drug_selection <- loaded$drug_selection
+    values$model <- loaded$model
+    
+    values$doseh_ini <- loaded$doseh # previous table to initial state
+    values$sim_doseh_ini <- loaded$sim_doseh
+    values$obsh_ini <- loaded$obsh
+    
+  })
 
+  output$files <- renderTable(input$upload)
+  
+  # rename encoded names to original state
+  observeEvent(input$upload, {
+    file.rename(from = input$upload$datapath,
+                to = paste0(dirname(input$upload$datapath),"/",input$upload$name))
+  })
+  # download as zip
+  output$download <- downloadHandler(
+    filename = 'pdfs.zip',
+    content = function(fname) {
+      
+      #file.copy(from = upload_filepath, to = tempdir())
+      zip::zip(fname, files = input$upload$name, root = dirname(input$upload$datapath))
+    },
+    contentType = "application/zip"
+  )
+  
   # model module server
   mods_server("drugs",values) # select model -> force network vis
   des_server("des_model", mod_env, values)
@@ -776,7 +828,7 @@ server <- function(input, output, session) {
   # Generating model specific table
   observeEvent(
     eventExpr = {
-      ifelse(is.null(input$model),TRUE,input$model)
+      ifelse(is.null(input$model),TRUE,input$model) # regard TRUE when model is not selected
     },
     handlerExpr = {
     mod_env() # refresh model environment when model is selected
@@ -1350,29 +1402,7 @@ server <- function(input, output, session) {
   
   
   
-  # data management (save and load)
-  # save
-  observeEvent(input$save_button, {
-    values$doseh <- hot_to_r(input$doseh) # save dosing history to values
-    values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
-    values$obsh <- hot_to_r(input$obsh) # save observation history to values
-    saveRDS(serialize(values, connection = NULL), paste0("./temp/",input$ID,".rds"))
-  })
-  # load
-  observeEvent(input$load_button, {
-    loaded <- unserialize(
-      readRDS( paste0("./temp/",input$ID,".rds") )
-    )
-    
-    values$drug_selection <- loaded$drug_selection
-    values$model <- loaded$model
-    
-    values$doseh_ini <- loaded$doseh # previous table to initial state
-    values$sim_doseh_ini <- loaded$sim_doseh
-    values$obsh_ini <- loaded$obsh
-    
-  })
-  
+
   
 
   output$data_arr <- renderTable({ hist_data() })
