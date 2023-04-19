@@ -722,12 +722,12 @@ server <- function(input, output, session) {
   
   # model environment
   mod_env <- reactive({
-    
     drug_selection <- values$drug_selection
     model <- values$model
     
     ifelse(
       # if
+      #!is.null(model)
       sum(paste0(
         drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
                                       pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
@@ -739,13 +739,11 @@ server <- function(input, output, session) {
           "./drug/",drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
                                                   pattern = paste0(model, ".R"), recursive = TRUE) # Finding specified name
         )
-      )
-      ,
+      ),
       # else
       source("./default.R") # Default state (:no model loaded)  
       
     )  
-    
     
   }) # Loading model environment ends
   
@@ -778,9 +776,10 @@ server <- function(input, output, session) {
   # Generating model specific table
   observeEvent(
     eventExpr = {
-      mod_env()
+      ifelse(is.null(input$model),TRUE,input$model)
     },
     handlerExpr = {
+    mod_env() # refresh model environment when model is selected
     values$doseh_ini <- data.frame(Date=Sys.Date(),
                                Hour=0,
                                Min=0,
@@ -1357,11 +1356,13 @@ server <- function(input, output, session) {
     values$doseh <- hot_to_r(input$doseh) # save dosing history to values
     values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
     values$obsh <- hot_to_r(input$obsh) # save observation history to values
-    saveRDS(values, paste0("./temp/",input$ID,".rds"))
+    saveRDS(serialize(values, connection = NULL), paste0("./temp/",input$ID,".rds"))
   })
   # load
   observeEvent(input$load_button, {
-    loaded <- readRDS( paste0("./temp/",input$ID,".rds") )
+    loaded <- unserialize(
+      readRDS( paste0("./temp/",input$ID,".rds") )
+    )
     
     values$drug_selection <- loaded$drug_selection
     values$model <- loaded$model
