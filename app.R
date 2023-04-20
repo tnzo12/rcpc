@@ -12,8 +12,9 @@ library(rhandsontable)
 library(formattable)
 library(shinyWidgets)
 library(shinycssloaders)
-
+library(htmltools)
 library(plotly)
+
 # Server side libraries ---------------
 library(shiny)
 library(devtools)
@@ -46,6 +47,20 @@ library(PreciseSums)
 source("1.mods.R", local=TRUE)
 source("2.des.R", local=TRUE)
 source("3.plot.R", local=TRUE)
+source("4.dm.R", local=TRUE)
+
+
+# basic reacatable options
+options(reactable.theme = reactable::reactableTheme(
+  backgroundColor = "transparent",
+  cellStyle = list(display = "flex", flexDirection = "column", justifyContent = "center"),
+  inputStyle = list(backgroundColor = "transparent"),
+  pageButtonHoverStyle = list(backgroundColor = "hsl(233, 9%, 25%)"),
+  pageButtonActiveStyle = list(backgroundColor = "hsl(233, 9%, 28%)"),
+  borderColor = 'rgba(102,102,102,0.3)',
+  borderWidth = '1px'
+))
+
 
 # Rhandsontable css theme
 # https://handsontable.com/docs/3.0.0/tutorial-styling.html
@@ -124,6 +139,32 @@ css <- "
 }
 
 "
+# badge theme (reactable)
+css_rt <- " 
+.tag {
+  display: inline-block;
+  padding: 0.125rem 0.75rem;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.drug-Vancomycin {
+  background: hsl(350, 70%, 90%);
+  color: hsl(350, 45%, 30%);
+}
+
+.drug-Phenobarbital {
+  background: hsl(230, 70%, 90%);
+  color: hsl(230, 45%, 30%);
+}
+
+.drug-Tacrolimus {
+  background: hsl(116, 60%, 90%);
+  color: hsl(116, 30%, 25%);
+}
+"
+
 ui <- dashboardPage(
   
   fullscreen = TRUE,
@@ -307,10 +348,13 @@ ui <- dashboardPage(
         width=12,
         title="Upload",
         elevation = 2,
-        tableOutput("files"),
         shiny::fileInput(inputId = "upload", label = "select file", multiple = TRUE,
                          accept = ".rds"),
+        tags$head(tags$style(HTML(css_rt))),
+        reactable::reactableOutput("rt"),
+        br(),
         downloadButton("download", "Download the files")
+        
       )
     ),
     fluidRow(
@@ -548,6 +592,12 @@ ui <- dashboardPage(
         formattableOutput("param_table"),
         
         htmlOutput("des_params")
+      ),
+      box(
+        width=6,
+        title = "uploaded file",
+        elevation = 2,
+        tableOutput("files")
       )
       
       
@@ -729,7 +779,8 @@ server <- function(input, output, session) {
            model = values$model,
            doseh = values$doseh,
            sim_doseh = values$sim_doseh,
-           obsh = values$obsh),
+           obsh = values$obsh,
+           saved = Sys.time()),
       connection = NULL), paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds"))
   })
   # load
@@ -764,6 +815,64 @@ server <- function(input, output, session) {
     },
     contentType = "application/zip"
   )
+  
+  
+  # observe event -> generate table
+ observeEvent(eventExpr = {
+   input$upload 
+   values$save_button
+   values$load_button
+ },
+ 
+ handlerExpr = {
+   # sort out .rds files
+   rds_files <- list.files(path = dirname(input$upload$datapath[1]),
+                           full.names = TRUE,
+                           pattern = "\\.rds$")
+   
+   # rds table
+   rt <- lapply(rds_files, readRDS) %>%
+     sapply(unserialize) %>% # unserialize the file
+     rbind(rds_files) %>% # attach filename
+     t() %>% data.frame() %>%
+     rename(drug = drug_selection) %>% 
+     rowwise() %>%
+     mutate(id = gsub(".rds","",basename(rds_files)), # remove directory, extension
+            no.dose = c(doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+            no.sim_dose =  c(sim_doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+            no.obs = c(obsh %>% filter(!is.na(Val)) %>% summarize(length(Val)))) %>% 
+     select(id, drug, model, no.dose, no.sim_dose, no.obs)
+   
+   output$rt <- reactable::renderReactable(
+     
+     reactable::reactable(
+       rt,
+       resizable = TRUE,
+       defaultExpanded = TRUE,
+       compact = TRUE,
+       selection = "single",
+       onClick = "select",
+       filterable = TRUE,
+       columns = list(
+         drug = reactable::colDef(cell = function(value) {
+           class <- paste0("tag drug-", value)
+           div(class = class, value)
+         })
+       ),
+       highlight = TRUE
+       
+     )
+     
+     
+   )
+   
+ })
+  
+  
+  
+  
+  # data management module server
+  #dm_server("rt", values)
   
   # model module server
   mods_server("drugs",values) # select model -> force network vis
