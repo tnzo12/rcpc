@@ -811,7 +811,9 @@ server <- function(input, output, session) {
     content = function(fname) {
       
       #file.copy(from = upload_filepath, to = tempdir())
-      zip::zip(fname, files = input$upload$name, root = dirname(input$upload$datapath))
+      zip::zip(fname, files = list.files(path = dirname(input$upload$datapath[1]),
+                                         pattern = "\\.rds$"),
+               root = dirname(input$upload$datapath))
     },
     contentType = "application/zip"
   )
