@@ -28,6 +28,7 @@ library(shinyjs)
 
 # Data management
 library(rhandsontable)
+library(reactable)
 library(formattable)
 library(kableExtra)
 library(knitr)
@@ -164,6 +165,8 @@ css_rt <- "
   color: hsl(116, 30%, 25%);
 }
 "
+
+abs_path_temp <- tools::file_path_as_absolute("./temp")
 
 ui <- dashboardPage(
   
@@ -346,7 +349,7 @@ ui <- dashboardPage(
     fluidRow(
       box(
         width=12,
-        title="Upload",
+        title="Data",
         elevation = 2,
         shiny::fileInput(inputId = "upload", label = "select file", multiple = TRUE,
                          accept = ".rds"),
@@ -368,14 +371,7 @@ ui <- dashboardPage(
                </i></span>"),
         HTML("<hr size='1px', style='color:#e0e0e0;border-style:dashed'>"), # horizental line
         div(style="display: inline-block;vertical-align:top; width: 100%;",
-            numericInput(
-              inputId = "ID",
-              label = "Patient number",
-              value = 201950471,
-              min = NA,
-              max = NA,
-              step = 1
-            )),
+            uiOutput("IDinput")),
         div(style="display: inline-block;vertical-align:top; width: 100%;",
             textInput(
               inputId = 'pat_name',
@@ -775,26 +771,38 @@ server <- function(input, output, session) {
     values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
     values$obsh <- hot_to_r(input$obsh) # save observation history to values
     saveRDS(serialize(
-      list(drug_selection = values$drug_selection, # select values to save
+      object = list(drug_selection = values$drug_selection, # select values to save
            model = values$model,
            doseh = values$doseh,
            sim_doseh = values$sim_doseh,
            obsh = values$obsh,
            saved = Sys.time()),
-      connection = NULL), paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds"))
+      connection = NULL),
+      file = ifelse(is.null(input$upload$datapath),
+                            paste0("./temp/",input$ID,".rds"),
+                            paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds"))) # saving directory
+    showNotification("history saved", type = "warning")
   })
   # load
   observeEvent(input$load_button, {
-    loaded <- unserialize(
-      readRDS( paste0(dirname(input$upload$datapath[1]),"/",input$ID,".rds") )
-    )
+    if(file.exists(paste0(dirname(ifelse(is.null(input$upload$datapath),".",input$upload$datapath[1])),"/",input$ID,".rds")) | # system temp
+       file.exists(ifelse(is.null(values$rt),"./.rds",values$rt$rds_files[[getReactableState("rt","selected")]])) # shiny app
+       ){
+      loaded <- unserialize(
+        readRDS( values$rt$rds_files[[reactable::getReactableState("rt","selected")]] )
+      )
+      
+      values$drug_selection <- loaded$drug_selection
+      values$model <- loaded$model
+      
+      values$doseh_ini <- loaded$doseh # previous table to initial state
+      values$sim_doseh_ini <- loaded$sim_doseh
+      values$obsh_ini <- loaded$obsh
+      showNotification("save file loaded", type = "message")
+    } else {
+      showNotification("could not find matching ID", type = "error")
+    }
     
-    values$drug_selection <- loaded$drug_selection
-    values$model <- loaded$model
-    
-    values$doseh_ini <- loaded$doseh # previous table to initial state
-    values$sim_doseh_ini <- loaded$sim_doseh
-    values$obsh_ini <- loaded$obsh
     
   })
 
@@ -805,50 +813,86 @@ server <- function(input, output, session) {
     file.rename(from = input$upload$datapath,
                 to = paste0(dirname(input$upload$datapath),"/",input$upload$name))
   })
+  
   # download as zip
   output$download <- downloadHandler(
-    filename = 'pdfs.zip',
+    filename = 'export.zip',
     content = function(fname) {
-      
-      #file.copy(from = upload_filepath, to = tempdir())
-      zip::zip(fname, files = list.files(path = dirname(input$upload$datapath[1]),
-                                         pattern = "\\.rds$"),
-               root = dirname(input$upload$datapath))
+      zip_temp <- zip::zip(fname, files = unlist(values$rt$rds_files),
+                           mode = "cherry-pick")
+      #zip_temp <- zip::zip(fname, files = list.files(path = abs_path_temp, pattern = "\\.rds$"),
+      #                     root = abs_path_temp)
+      #if(!is.null(input$upload$datapath)){
+      #  zip::zip_append(zip_temp, files = list.files(path = dirname(input$upload$datapath[1]), pattern = "\\.rds$"),
+      #                  root = dirname(input$upload$datapath[1]))  
+      #}
     },
     contentType = "application/zip"
   )
   
   
   # observe event -> generate table
- observeEvent(eventExpr = {
-   input$upload 
-   values$save_button
-   values$load_button
- },
- 
- handlerExpr = {
-   # sort out .rds files
-   rds_files <- list.files(path = dirname(input$upload$datapath[1]),
-                           full.names = TRUE,
-                           pattern = "\\.rds$")
-   
-   # rds table
-   rt <- lapply(rds_files, readRDS) %>%
-     sapply(unserialize) %>% # unserialize the file
-     rbind(rds_files) %>% # attach filename
-     t() %>% data.frame() %>%
-     rename(drug = drug_selection) %>% 
-     rowwise() %>%
-     mutate(id = gsub(".rds","",basename(rds_files)), # remove directory, extension
-            no.dose = c(doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
-            no.sim_dose =  c(sim_doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
-            no.obs = c(obsh %>% filter(!is.na(Val)) %>% summarize(length(Val)))) %>% 
-     select(id, drug, model, no.dose, no.sim_dose, no.obs)
-   
-   output$rt <- reactable::renderReactable(
+ observeEvent(
+   eventExpr = {
+   c(input$save_button,input$load_button,input$upload)
+   },
+   handlerExpr = {
+     # remove identical files between two temp folders
+     if(!is.null(input$upload$datapath[1])){
+       temp_files <- list.files(abs_path_temp, pattern = "\\.rds$")
+       datapath_files <- list.files(path = dirname(input$upload$datapath[1]), pattern = "\\.rds$")
+       if(any(temp_files %in% datapath_files)){
+         file.remove(paste0(abs_path_temp,"/",temp_files[temp_files %in% datapath_files]))  
+       }
+       
+     }
      
+     
+     # sort out .rds files
+     rds_files <- if(is.null(input$upload$datapath[1])){
+       sapply(list.files(path = "./temp", # temp folder inside shiny application
+                         full.names = TRUE,
+                         pattern = "\\.rds$"),
+              tools::file_path_as_absolute)
+     }else{
+       c(list.files(path = dirname(input$upload$datapath[1]), # generated temp folder by fileinput
+                    full.names = TRUE,
+                    pattern = "\\.rds$"),
+         sapply(list.files(path = "./temp", # temp folder inside shiny application
+                           full.names = TRUE,
+                           pattern = "\\.rds$"),
+                tools::file_path_as_absolute))
+     }
+     
+   # rds table
+     if(length(rds_files)!=0){
+       values$rt <- lapply(rds_files, readRDS) %>%
+         sapply(unserialize) %>% # unserialize the file
+         rbind(rds_files) %>% # attach filename
+         t() %>% data.frame() %>%
+         rename(drug = drug_selection) %>% 
+         rowwise() %>%
+         mutate(id = gsub(".rds","",basename(rds_files)), # remove directory, extension
+                no.dose = c(doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+                no.sim_dose =  c(sim_doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+                no.obs = c(obsh %>% filter(!is.na(Val)) %>% summarize(length(Val)))) %>% 
+         select(id, drug, model, no.dose, no.sim_dose, no.obs, saved, rds_files)
+     }
+   
+
+   
+   
+ })
+ output$rt <- reactable::renderReactable(
+   if(is.null(values$rt)){
      reactable::reactable(
-       rt,
+       data.frame(no_data_loaded=NA) 
+     )
+   
+     }else{
+   
+     reactable::reactable(
+       values$rt,
        resizable = TRUE,
        defaultExpanded = TRUE,
        compact = TRUE,
@@ -859,18 +903,36 @@ server <- function(input, output, session) {
          drug = reactable::colDef(cell = function(value) {
            class <- paste0("tag drug-", value)
            div(class = class, value)
-         })
+         }),
+         saved = reactable::colDef(
+           format = reactable::colFormat(datetime = TRUE),
+           width = 200
+         ),
+         rds_files = reactable::colDef(show = FALSE)
        ),
        highlight = TRUE
        
      )
-     
-     
-   )
+       
+   }
    
- })
-  
-  
+   
+   
+ )
+ 
+ output$IDinput <- renderUI(
+   numericInput(
+     inputId = "ID",
+     label = "Patient number",
+     value = ifelse(is.null(reactable::getReactableState("rt","selected")),
+                    NA,
+                    values$rt$id[reactable::getReactableState("rt","selected")]),
+     min = NA,
+     max = NA,
+     step = 1
+   )
+ )  
+ 
   
   
   # data management module server
@@ -1042,6 +1104,8 @@ server <- function(input, output, session) {
     obsh <- hot_to_r(input$obsh) %>% 
       tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
       mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(., 0)) %>% 
+      arrange(Date, Hour, Min) %>% 
+      tidyr::fill(mod_cov, .direction = "downup") %>% 
       mutate(MDV = 0,
              EVID = 0,
              CMT = mod_comp[Type],
@@ -1093,8 +1157,6 @@ server <- function(input, output, session) {
     tags$img(src = scheme_image)
   })
   
-  
-  
   # starts fitting when estimation button is pressed 
   fit.s <- eventReactive(input$run_button, {
     fit.s <- nlmixr(
@@ -1144,7 +1206,7 @@ server <- function(input, output, session) {
       merge(hist_data %>%
               rename_all(tolower) %>%
               filter(!is.na(amt)) %>%
-              select("time","amt","cmt","rate","addl","ii","evid","ss"), all=TRUE) %>% 
+              select(any_of(c("time","amt","cmt","rate","addl","ii","evid","ss"))), all=TRUE) %>% 
       merge(cov_data, all=TRUE) %>% # merge (outer join)
       tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
       tidyr::fill("CRPZERO", .direction = "downup")
