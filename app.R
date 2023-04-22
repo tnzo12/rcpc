@@ -925,7 +925,7 @@ server <- function(input, output, session) {
      inputId = "ID",
      label = "Patient number",
      value = ifelse(is.null(reactable::getReactableState("rt","selected")),
-                    NA,
+                    1,
                     values$rt$id[reactable::getReactableState("rt","selected")]),
      min = NA,
      max = NA,

@@ -67,8 +67,8 @@ f <- function(){
     theta1  <- c(0.387)     # Add err PK
     theta2  <- c(log(50.9))      # V
     theta3  <- c(log(3.42))      # Cl
-    theta4  <- fix(31.2)      # TM50
-    theta5  <- fix(3.68)      # Hill
+    theta4  <- c(31.2)      # TM50
+    theta5  <- c(3.68)      # Hill
     theta6  <- fix(1.46)      # K growth
     theta7  <- fix(0.187)     # K death
     theta8  <- fix(1.52)      # Emax bact
