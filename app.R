@@ -34,6 +34,7 @@ library(kableExtra)
 library(knitr)
 library(dplyr)
 library(data.table)
+library(furrr)
 
 # Visualization
 library(networkD3)
@@ -49,6 +50,7 @@ source("1.mods.R", local=TRUE)
 source("2.des.R", local=TRUE)
 source("3.plot.R", local=TRUE)
 source("4.dm.R", local=TRUE)
+source("5.sim.R", local=TRUE)
 
 
 # basic reacatable options
@@ -296,7 +298,7 @@ ui <- dashboardPage(
       HTML("<span style='color:grey'><i>
       [Manipulate estimation specs] <br>
       *Post-hoc: default method, only evaluate, no parameter change <br>
-      *foce: estimate theta & eta <br>
+      *foce: estimate theta & eta <br>qt
                </i></span>")
       
       
@@ -676,8 +678,59 @@ ui <- dashboardPage(
       ),
       box(
         width=12,
+        title = "Scenario-based predictions",
+        elevation = 2,
+        fluidRow(
+          shiny::column(width=6,
+                        shiny::checkboxGroupInput("sce_doser", label="dosing ratio",
+                                                  choices= c(0.125, .25, .5, .75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5),
+                                                  selected=c(.25, .5, .75, 1, 1.25, 1.5),
+                                                  inline=TRUE)
+          ),
+          shiny::column(width=6,
+                        shiny::checkboxGroupInput("sce_tau", label="dosing interval",
+                                                  choices = c(3, 4, 6, 8, 12, 24, 48, 72),
+                                                  selected = c(3, 4, 6, 8, 12, 24),
+                                                  inline=TRUE)
+          )
+        ),
+        actionButton(
+          label = "Calculate steady state PK params",
+          icon = icon('sync-alt'),
+          inputId = "sce_button",
+          # icon: https://fontawesome.com/icons?from=io
+        ),
+        fluidRow(
+          shiny::column(width=6,
+                        sim_sce_ui1("sce_grid1")),
+          shiny::column(width=6,
+                        sim_sce_ui2("sce_grid2"))
+        )
+            
+            
+        
+      ),
+      box(
+        width=12,
         title = "Probability Target Attainment",
-        elevation = 2
+        elevation = 2,
+        fluidRow(
+          shiny::column(width=6,
+                        selectInput("conc_type", label = "", choices = c("c_peak","c_trou")),
+                        shiny::uiOutput("conc_win"),
+                        selectInput("auc_type", label = "", choices = c("auc_24","auc_tau")),
+                        shiny::uiOutput("auc_win"),
+                        actionButton(
+                          label = "Calculate PTA",
+                          icon = icon('sync-alt'),
+                          inputId = "pta_button",
+                          # icon: https://fontawesome.com/icons?from=io
+                        ), br(), br(),
+                        sim_pta_ui("pta")
+          ),
+          sim_pta_hist_ui("pta_hist")
+        )
+        
       ),
       box(
         width=12,
@@ -696,7 +749,7 @@ ui <- dashboardPage(
       box(
         width=12,
         collapsed = TRUE,
-        title = "simulation with IIV",
+        title = "simulation with IIV (as percentile)",
         elevation = 2,
         tableOutput("data_arr7")
       ),
@@ -762,21 +815,37 @@ server <- function(input, output, session) {
   observeEvent(input$load_button, {
     values$load_button <- input$load_button
   })
-  
+  observeEvent(input$run_button, {
+    values$run_button <- input$run_button
+    values$sce_doser <- input$sce_doser
+    values$sce_tau <- input$sce_tau
+  })
+  observeEvent(input$sce_button, {
+    values$sce_button <- input$sce_button
+  })
+  observeEvent(input$pta_button, {
+    values$pta_button <- input$pta_button
+    values$conc_win <- input$conc_win
+    values$conc_type <- input$conc_type
+    values$auc_win <- input$auc_win
+    values$auc_type <- input$auc_type
+    values$vpc_opt <- input$vpc_opt
+  })
   
   # data management (save and load)
   # save
   observeEvent(input$save_button, {
-    values$doseh <- hot_to_r(input$doseh) # save dosing history to values
-    values$sim_doseh <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
-    values$obsh <- hot_to_r(input$obsh) # save observation history to values
+    values$doseh_raw <- hot_to_r(input$doseh) # save dosing history to values
+    values$sim_doseh_raw <- hot_to_r(input$sim_doseh) # save simulation dosing history to values
+    values$obsh_raw <- hot_to_r(input$obsh) # save observation history to values
     saveRDS(serialize(
-      object = list(drug_selection = values$drug_selection, # select values to save
-           model = values$model,
-           doseh = values$doseh,
-           sim_doseh = values$sim_doseh,
-           obsh = values$obsh,
-           saved = Sys.time()),
+      object = list(
+        drug_selection = values$drug_selection, # select values to save
+        model = values$model,
+        doseh_raw = values$doseh_raw,
+        sim_doseh_raw = values$sim_doseh_raw,
+        obsh_raw = values$obsh_raw,
+        saved = Sys.time()),
       connection = NULL),
       file = ifelse(is.null(input$upload$datapath),
                             paste0("./temp/",input$ID,".rds"),
@@ -795,9 +864,9 @@ server <- function(input, output, session) {
       values$drug_selection <- loaded$drug_selection
       values$model <- loaded$model
       
-      values$doseh_ini <- loaded$doseh # previous table to initial state
-      values$sim_doseh_ini <- loaded$sim_doseh
-      values$obsh_ini <- loaded$obsh
+      values$doseh_ini <- loaded$doseh_raw # previous table to initial state
+      values$sim_doseh_ini <- loaded$sim_doseh_raw
+      values$obsh_ini <- loaded$obsh_raw
       showNotification("save file loaded", type = "message")
     } else {
       showNotification("could not find matching ID", type = "error")
@@ -873,9 +942,9 @@ server <- function(input, output, session) {
          rename(drug = drug_selection) %>% 
          rowwise() %>%
          mutate(id = gsub(".rds","",basename(rds_files)), # remove directory, extension
-                no.dose = c(doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
-                no.sim_dose =  c(sim_doseh %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
-                no.obs = c(obsh %>% filter(!is.na(Val)) %>% summarize(length(Val)))) %>% 
+                no.dose = c(doseh_raw %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+                no.sim_dose =  c(sim_doseh_raw %>% filter(!is.na(Amt)) %>% summarize(do = sum(Rep, na.rm = T) + length(Amt))),
+                no.obs = c(obsh_raw %>% filter(!is.na(Val)) %>% summarize(length(Val)))) %>% 
          select(id, drug, model, no.dose, no.sim_dose, no.obs, saved, rds_files)
      }
    
@@ -896,6 +965,7 @@ server <- function(input, output, session) {
        resizable = TRUE,
        defaultExpanded = TRUE,
        compact = TRUE,
+       defaultSelected = 1,
        selection = "single",
        onClick = "select",
        filterable = TRUE,
@@ -940,10 +1010,17 @@ server <- function(input, output, session) {
   
   # model module server
   mods_server("drugs",values) # select model -> force network vis
+  
   des_server("des_model", mod_env, values)
   des_server("des_notes", mod_env, values)
   des_server("des_abbr", mod_env, values)  # Load selected model environment
   
+  sim_server("sce_grid1", mod_env, values)
+  sim_server("sce_grid2", mod_env, values)
+  sim_server("conc_win", mod_env, values)
+  sim_server("auc_win", mod_env, values)
+  sim_server("pta", mod_env, values)
+  sim_server("pta_hist", mod_env, values)
   
   # model environment
   mod_env <- reactive({
@@ -1079,7 +1156,7 @@ server <- function(input, output, session) {
   
   # Download table input from UI -> Processing ======================
   # Data processing method
-  hist_data <- eventReactive(input$run_button, {
+  observeEvent(input$run_button, {
     mod_env() # load model's environment
     
     # Loading dosing history from ui input
@@ -1097,6 +1174,7 @@ server <- function(input, output, session) {
              CMT = mod_comp[Route],
              RATE = ifelse(Dur!=0, AMT/Dur,0)) # if duration exists, RATE generated
     
+    values$doseh <- doseh
     output$dosehis <- renderTable({doseh})
     
     
@@ -1112,6 +1190,7 @@ server <- function(input, output, session) {
              condi = 'est') %>% # labeling: estimation dataset
       rename(DV = Val)
     
+    values$obsh <- obsh
     output$obshis <- renderTable({obsh}) # debugging table, observation history
     
     
@@ -1131,17 +1210,13 @@ server <- function(input, output, session) {
     # -------------------------------------------------------------------------
     
     # Table output (sorted history data)
-    f_data <- subset(f_data, select= -c(Dur, Type))
-    
-    output$data_arr4 <- renderTable({ f_data }) # debugging table. fitting data
-    
-    f_data
+    values$f_data <- subset(f_data, select= -c(Dur, Type))
   })
   
 
   
   sim_start_time <- reactive({ # simulation start time
-    sim_hist <- subset(hist_data(), condi=='sim' & ID==input$ID)
+    sim_hist <- subset(values$f_data, condi=='sim' & ID==input$ID)
     sim_hist[is.na(sim_hist)] <- 0
     sim_hist <- head(sim_hist, 1)
     sim_start_time <- sim_hist[1,"TIME"]
@@ -1161,7 +1236,7 @@ server <- function(input, output, session) {
   fit.s <- eventReactive(input$run_button, {
     fit.s <- nlmixr(
       object = f,
-      data = subset(hist_data(), condi=='est'),
+      data = subset(values$f_data, condi=='est'),
       est = input$est_method, # post-hoc method, https://github.com/nlmixrdevelopment/nlmixr/issues/32
       foceiControl(eval.max = input$eval_max,
                    maxInnerIterations = input$inner_iter,
@@ -1172,6 +1247,7 @@ server <- function(input, output, session) {
     fit.s <- fit.s %>%
       mutate(CMT = if(is.null(fit.s$CMT)) {pk_obs} else {mod_obs[as.numeric(CMT)]} ) %>% 
       rename(Time = TIME)
+    values$fit.s <- fit.s
 
     fit.s
   })
@@ -1181,29 +1257,31 @@ server <- function(input, output, session) {
   
   
   # estimation table for plot =======================================
-  est_table <- eventReactive(input$run_button, { # Dose simulation on simulation box
+  est_table <- observeEvent(input$run_button, { # Dose simulation on simulation box
     
     mod_env()
     fit.s <- fit.s() # fitted data
-    hist_data <-  hist_data() # completed history table
+    f_data <-  values$f_data # completed history table
     
     # data subsetting: amt + cov_data -> merged ev
-    amt_data <- subset(hist_data, !is.na(hist_data$AMT))
-    cov_data <- subset(hist_data, MDV==0) %>%
+    amt_data <- subset(f_data, !is.na(f_data$AMT))
+    cov_data <- subset(f_data, MDV==0) %>%
       rename(time = TIME) %>%
       mutate(evid = MDV,
              amt = 0) %>% dplyr::select(time, evid, any_of(mod_cov), CRPZERO)
     
-    est_hist <- subset(hist_data, condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
+    values$cov_data <- cov_data
+    
+    est_hist <- subset(f_data, condi=='est') %>% replace(is.na(.), 0) %>% tail(1)
     
     est_endtime <- est_hist[1,"TIME"] + (est_hist[1,"ADDL"] * est_hist[1,"II"]) + 24 # set endtime
     
     ev <- et() %>% 
       et(seq(from=0, to=as.numeric(max( # follows the bigger record between simulation and estimation dosing history
-        hist_data$TIME[nrow(hist_data)]+input$sim_obs_period*24,
+        f_data$TIME[nrow(f_data)]+input$sim_obs_period*24,
         est_endtime
       )), by=input$step_size)) %>% # by 0.25 hour = 15 min, tracking for additional 48 hours
-      merge(hist_data %>%
+      merge(f_data %>%
               rename_all(tolower) %>%
               filter(!is.na(amt)) %>%
               select(any_of(c("time","amt","cmt","rate","addl","ii","evid","ss"))), all=TRUE) %>% 
@@ -1223,6 +1301,8 @@ server <- function(input, output, session) {
 
     # 1) estimated eta
     eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
+    values$eta_table <- eta_table
+    
     ev_noiiv <- dplyr::bind_cols(ev, eta_table) # 'fixed' eta from final output
     # 2) randomized eta   
     ev_iiv <- ev # final output. no corrections made from original event table
@@ -1235,7 +1315,7 @@ server <- function(input, output, session) {
         x = list(seq(from=time, to=(time + addl*ii), by = ii))
       ) %>% 
       unlist() %>% unname()
-    hist_dose <- hist_data %>% filter(is.na(DV)) # only dosing history
+    hist_dose <- f_data %>% filter(is.na(DV)) # only dosing history
     hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
 
     
@@ -1275,9 +1355,10 @@ server <- function(input, output, session) {
     sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_start_time),'est','sim')
     sim_res_iiv$condi[is.na(sim_res_iiv$condi)] <- 'est'
    
-    sim_res_iiv_param <- sim_res_iiv
     
-    sim_res_iiv <- data.table::melt(sim_res_iiv,
+    values$sim_res_iiv <- sim_res_iiv
+    
+    sim_res_piiv <- data.table::melt(sim_res_iiv,
                                     id.vars = c("Time","condi"),
                                     measure.vars = c(if(is.na(pk)){NULL}else{pk},
                                                      if(is.na(pd)){NULL}else{pd})) %>%
@@ -1287,9 +1368,9 @@ server <- function(input, output, session) {
             P75 = quantile(value, 0.75),
             P95 = quantile(value, 0.95)), by=.(Time,condi,variable)] # summarize by its quantiles
     
-    output$data_arr8 <- renderTable({sim_res_iiv})
     
     
+    sim_res_iiv_param <- sim_res_iiv
     # visual parameter diagnostics (prm_iivs), list[[3]]
     prm_iivs <- dplyr::bind_rows(sim_res_iiv_param, sim_res_noiiv) %>% 
       .[, sim.id, mget(est_eta)] %>%
@@ -1305,7 +1386,10 @@ server <- function(input, output, session) {
     
     
     # list generated data
-    list(sim_res_noiiv, sim_res_iiv, prm_iivs) # [[1]]: no iiv simtab, [[2]] iiv simtab, [[3]] eta vis
+    values$sim_res_noiiv <- sim_res_noiiv
+    values$sim_res_iiv <- sim_res_iiv # sim_res_iiv: raw
+    values$sim_res_piiv <- sim_res_piiv # sim_res_iiv: percentile
+    values$prm_iivs <- prm_iivs
     
   })
   
@@ -1314,7 +1398,7 @@ server <- function(input, output, session) {
   
   output$param_vis <- renderPlotly({
     
-    prm_iivs <- est_table()[[3]]
+    prm_iivs <- values$prm_iivs
     # visual parameter diagnostic plot
     vis_param(prm_iivs)
     
@@ -1323,7 +1407,7 @@ server <- function(input, output, session) {
   
   
   output$param_table <- renderFormattable({
-    prm_iivs <- est_table()[[3]]
+    prm_iivs <- values$prm_iivs
     
     prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
       unique(by="Param") %>%
@@ -1364,20 +1448,20 @@ server <- function(input, output, session) {
     }else{
       
       # pk observation period
-      est_hist <- subset(hist_data(), condi=='est' & ID==input$ID)
+      est_hist <- subset(values$f_data, condi=='est' & ID==input$ID)
       est_hist[is.na(est_hist)] <- 0
       est_hist <- tail(est_hist, 1)
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
       fit.s <- fit.s()
-      sim_res_noiiv <- est_table()[[1]] %>%
+      sim_res_noiiv <- values$sim_res_noiiv %>%
         rename(Time = time, Estimated = pk)
-      sim_res_iiv <- est_table()[[2]] %>%
+      sim_res_piiv <- values$sim_res_piiv %>%
         filter(variable == pk)
       
       # plot
       subplot(
-        pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label),
+        pkd_plot(sim_res_piiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label),
         auc_plot(sim_res_noiiv, pk_x_label, pk_y_label),
         nrows = 2, heights = c(0.85, 0.15), shareX = TRUE
       )
@@ -1412,19 +1496,19 @@ server <- function(input, output, session) {
     }else{
       
       # pd observation period
-      est_hist <- subset(hist_data(), condi=='est' & ID==input$ID)
+      est_hist <- subset(values$f_data, condi=='est' & ID==input$ID)
       est_hist[is.na(est_hist)] <- 0
       est_hist <- tail(est_hist, 1)
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
       fit.s <- fit.s()
-      sim_res_noiiv <- est_table()[[1]] %>%
+      sim_res_noiiv <- values$sim_res_noiiv %>%
         rename(Time = time, Estimated=pd)
-      sim_res_iiv <- est_table()[[2]] %>%
+      sim_res_piiv <- values$sim_res_piiv %>%
         filter(variable == pd)
       
       # plot
-      pkd_plot(sim_res_iiv, sim_res_noiiv, fit.s, pd_color, pd_obs, pd_x_label, pd_y_label)
+      pkd_plot(sim_res_piiv, sim_res_noiiv, fit.s, pd_color, pd_obs, pd_x_label, pd_y_label)
       
       
     }
@@ -1493,7 +1577,7 @@ server <- function(input, output, session) {
     sim_start_time <- sim_start_time()
     
     
-    sim_res_noiiv <- est_table()[[1]]
+    sim_res_noiiv <- values$sim_res_noiiv
     
     
     # if it is intermittent dosing (comparison between peaks)
@@ -1574,15 +1658,35 @@ server <- function(input, output, session) {
   })
   
   
+  observeEvent(values$sce_res, {
+    output$conc_win <- renderUI({
+      cmin <- min(values$sce_iter[[input$conc_type]], na.rm = TRUE) %>% floor()
+      cmax <- max(values$sce_iter[[input$conc_type]], na.rm = TRUE) %>% ceiling()
+      
+      sliderInput("conc_win", label = "concentration window",
+                  min = cmin, max = cmax,
+                  value = c(cmin, cmax))        
+    })
+    output$auc_win <- renderUI({
+      amin <- min(values$sce_iter[[input$auc_type]], na.rm = TRUE) %>% floor()
+      amax <- max(values$sce_iter[[input$auc_type]], na.rm = TRUE) %>% ceiling()
+      
+      sliderInput("auc_win", label = "AUC window",
+                  min = amin, max = amax,
+                  value = c(amin, amax))
+    })
+    
+  })
+  
   
 
   
 
-  output$data_arr <- renderTable({ hist_data() })
-  output$data_arr2 <- renderTable({ est_table()[[1]] }) # noiiv simtab
+  output$data_arr <- renderTable({ values$f_data })
+  output$data_arr2 <- renderTable({ values$sim_res_noiiv }) # noiiv simtab
   output$data_arr3 <- renderTable({ sim_summary()[[3]] })
-  output$data_arr7 <- renderTable({ est_table()[[2]] }) # iiv simtab
-  
+  output$data_arr7 <- renderTable({ values$sim_res_piiv }) # iiv simtab
+  output$data_arr8 <- renderTable({ values$sim_res_iiv })
   
   
 } # Server end

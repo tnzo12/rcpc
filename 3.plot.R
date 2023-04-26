@@ -14,7 +14,7 @@ no_plot <- function(text1, text2){
 
 # plot for pharmacokinetic / pharmacodynamic plot
 pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
-  plot_ly(data = iiv, x=~Time, type=NULL, colors=c(colr,colr,'#66CCCC')) %>%
+  plot_ly(data = iiv, x=~Time, type=NULL, colors=c(colr,colr,'#17a2b8')) %>%
     plotly::layout(xaxis = list(title = xlabel,
                                 color = "#999999"),
                    yaxis = list(title = ylabel,
@@ -41,7 +41,7 @@ pkd_plot <- function(iiv, noiiv, fit, colr, cmt, xlabel, ylabel){
 # pharmacokinetic plot add-on (AUC)
 auc_plot <- function(noiiv, xlabel, ylabel){
   plot_ly(data=noiiv, showlegend = FALSE) %>%
-    add_bars(x = ~Time, y = ~auc_divide, name="AUC_tau", color = I("#9999FF"), opacity=0.6, showlegend = FALSE) %>%
+    add_bars(x = ~Time, y = ~auc_divide, name="AUC_tau", color = I("#DC3545"), opacity=0.6, showlegend = FALSE) %>%
     plotly::layout(xaxis = list(title = xlabel,
                                 color = "#999999"),
                    yaxis = list(title = ylabel,
@@ -72,6 +72,24 @@ vis_param <- function(prm_iivs){
       plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)" 
     )
   
+}
+
+# heatmap plot
+hm_plot <- function(res, color1, color2, xlab, ylab, zvalue){
+  plot_ly(type=NULL, colors = colorRamp(c(color1, color2)) ) %>% 
+    layout(xaxis = list(tickmode = "array", color = "#999999", 
+                        tickvals = unique(res$dose), title = xlab, type="category", showgrid=FALSE),
+           yaxis = list(tickmode = "array", color = "#999999",
+                        tickvals = unique(res$tau), title = ylab, type="category", showgrid=FALSE),
+           plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)",
+           autosize = TRUE
+    ) %>% 
+    plotly::add_heatmap(data=res, x=~dose, y=~tau, z=~res[[zvalue]],
+                        showlegend=FALSE, opacity = 0.75, showscale=FALSE,
+                        xgap = 3.5, ygap = 3.5) %>%
+    plotly::add_text(data=res, x=~dose, y=~tau, type="scatter", name="param val.",
+                     showlegend=FALSE, text=~round(res[[zvalue]],2),
+                     textfont=list(color = "#FFFFFF"))
 }
 
 # functions

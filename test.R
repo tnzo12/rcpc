@@ -182,3 +182,110 @@ ev <- et() %>%
 ev %>% filter(!is.na(amt))
 
 amt_data$TIME
+
+
+
+# scenario-based simulations
+sce_doser <- c(.25, .5, .75, 1, 1.25, 1.5, 2)
+sce_tau <- c(3, 4, 6, 8, 12, 24, 48)
+
+df$condi <- c('sim', 'est', 'est') # re
+
+cov_data <- subset(df, MDV==0) %>%
+  rename(time = TIME) %>%
+  mutate(evid = MDV,
+         amt = 0) %>% dplyr::select(time, evid, any_of(mod_cov), CRPZERO)
+
+sim_lastr <- f_data %>% data.table() %>%
+  setnames(., tolower(names(.))) %>%
+  .[!is.na(amt),] %>% 
+  .[condi=='sim',] %>%
+  .[.N] %>%
+  select(any_of(c("time","amt","cmt","rate","ii","evid","ss")))
+sim_lastr
+evt <- et(seq(from=0,to=24, by=0.5))
+
+sce_et_gen <- function(doser, tau){
+  
+  evt %>% 
+    merge(sim_lastr %>% mutate(time=0,
+                               ss=1,
+                               amt=amt*doser,
+                               rate=rate*doser,
+                               ii=tau)
+          , # last row
+          all=TRUE) %>% 
+    merge(cov_data, all=TRUE) %>% # merge (outer join)
+    tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
+    tidyr::fill("CRPZERO", .direction = "downup") %>% 
+    dplyr::bind_cols(eta_table)
+}
+
+combs <- expand.grid(doser=sce_doser, tau=sce_tau)
+
+sce_grid <- combs %>% 
+  data.table() %>% 
+  furrr::future_pmap(sce_et_gen) %>% 
+  rbindlist() %>%
+  mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>%  # dosing record
+  rxSolve(object=fit.s, events=., nSub=1) %>%
+  data.table() %>% 
+  .[,ind_auc := lapply(.SD, auc, time), .SDcols="ipredSim", by=id] %>% 
+  .[,cum_auc := cumsum(ind_auc), by=id] %>% 
+  .[,c_peak := max(ipredSim), by=id] %>% 
+  .[,c_trou := .SD[time==sim_lastr$ii, ipredSim], by=id] %>% 
+  .[,auc_tau := .SD[time==sim_lastr$ii, cum_auc], by=id] %>% 
+  .[,auc_24 := auc_tau*24/sim_lastr$ii, by=id] %>% 
+  .[,.SD[1], by=id]
+
+sce_res <- bind_cols(combs, sce_grid) %>% mutate(dose=doser*sim_lastr$amt)
+
+plot_ly(type=NULL) %>% 
+  layout(xaxis = list(tickmode = "array", tickvals = sce_doser*sim_lastr$amt, title = "dosing amount", type="category", showgrid=FALSE),
+         yaxis = list(tickmode = "array", tickvals = sce_tau, title = "dosing interval", type="category", showgrid=FALSE),
+         plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)",
+         autosize = TRUE) %>% 
+  plotly::add_heatmap(data=sce_res, x=~dose, y=~tau, z=~auc_24, showlegend=FALSE, opacity = 0.8, showscale=FALSE) %>% 
+  plotly::add_text(data=sce_res, x=~dose, y=~tau, type="scatter", text=~round(auc_24,2), textfont=list(color='#999999'))
+
+class(sim_res)
+
+
+hm_plot(sce_res, "#6699CC", "#FF6666", "dosing amount (AUC 24)", "dosing interval","auc_24")
+
+
+sce_et_gen_iiv <- function(doser, tau){
+  
+  evt %>% 
+    merge(sim_lastr %>% mutate(time=0,
+                               ss=1,
+                               amt=amt*doser,
+                               rate=rate*doser,
+                               ii=tau)
+          , # last row
+          all=TRUE) %>% 
+    merge(cov_data, all=TRUE) %>% # merge (outer join)
+    tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
+    tidyr::fill("CRPZERO", .direction = "downup")
+}
+
+sim_res_p <- sce_et_gen_iiv(1,sim_lastr$ii) %>%
+  rxSolve(object=fit, events=., nSub=50) %>% 
+  data.table() %>% 
+  .[,ind_auc := lapply(.SD, auc, time), .SDcols="ipredSim", by=sim.id] %>% 
+  .[,cum_auc := cumsum(ind_auc), by=sim.id] %>% 
+  .[,c_peak := max(ipredSim), by=sim.id] %>% 
+  .[,c_trou := .SD[time==sim_lastr$ii, ipredSim], by=sim.id] %>% 
+  .[,auc_tau := .SD[time==sim_lastr$ii, cum_auc], by=sim.id] %>% 
+  .[,auc_24 := auc_tau*24/sim_lastr$ii, by=sim.id] %>% 
+  .[,.SD[1], by=sim.id]
+
+sim_res_p %>% filter(c_trou>15, c_peak<50)
+
+
+plot_ly(
+  data = sim_res_p,
+  x = ~sim.id,
+  y = ~auc_24
+) %>% add_trace(type="bar",
+                marker = list(color = ifelse(sim_res_p$auc_24>800, "#FF9900", "#999999")))
