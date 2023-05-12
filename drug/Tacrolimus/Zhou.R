@@ -42,7 +42,7 @@ mod_comp <- c(
 est_eta <-c('L/h'='cl',
             'L'='v')
 
-sd_eta <- sqrt(c(150,52.1,34.6)) # put sd^2 value in this vector
+sd_eta <- sqrt(c(1.09,0.5,0.34)) # put sd^2 value in this vector
 
 # Model file for estimation -----------------------------------------
 f <- function() {
