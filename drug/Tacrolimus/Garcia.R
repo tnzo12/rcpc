@@ -1,17 +1,15 @@
 # Tacrolimus population pk model
-# 환자 그룹별로 dosing 다르게 들어감. 
-
-
+# theta 값에 v 넣어줘야 하는데 논문에 volume of distribution에 관한 theta값이 없음
 
 
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus Oral centeral model for paediatric patients who underwent orthotopic liver transplantation"
-des_notes <- c("The group of patients was divided by 2 group. Each of groups got different Tacrolimus regimen.",
+des_intro <- "Tacrolimus Oral centeral model for paediatric patients who were on treatment with tacrolimus as conversion therapy were chosen for this retrospective study."
+des_notes <- c("The indications for conversion from cyclosporin to tacrolimus were chronic rejection (7 patients), acute rejection (3 patients), and cyclosporin toxicity (8 patients).",
                "<br>",
-               "For the 4 patients group, postoperative immunosuppressive therapy consisted of a combination of steroids and tacrolimus.")
+               "Cyclosporin was discontinued for 24 hours before patients were converted to tacrolimus therapy.")
 des_comp <- c("central", "depot")
-des_cov <- c("Age","BSA","WT","BIL") # Strict 
+des_cov <- c("WT","ALT","TIME","BIL") # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -20,8 +18,8 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("AGE","BSA","WT","BIL")
-mod_cov_abbr <- c("Age","Body surface area","Body weight","Bilirubin")
+mod_cov <- c("WT","ALT","TIME","BIL")
+mod_cov_abbr <- c("Body weight","Alanine aminotransferase","Time after initiation of treatment","Bilirubin")
 
 mod_route <- c("Oral")
 
@@ -47,45 +45,42 @@ mod_comp <- c(
 est_eta <-c('L/h'='cl',
             'L'='v')
 
-sd_eta <- sqrt(c(0.112,0.109,0.0579)) # put sd^2 value in this vector
+sd_eta <- sqrt(c(0.059)) # put sd^2 value in this vector
 
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(1.46)         # CL
-    theta2 <- c(39.1)         # V
-    theta3 <- c(0.197)        # F (Bioavailability)
-    
-    theta4 <- c(0.339)        # Age on CL
-    theta5 <- c(4.57)         # BSA on V
-    theta6 <- c(0.0887)       # WT on F
-    theta7 <- c(1.61)         # BIL on F
-    
-    theta8 <- c(4.5)          # Ka
-    theta9 <- c(5.79)         # Additive error
-    
-    eta1 ~ c(0.112)           # CL
-    eta2 ~ c(0.109)           # V
-    eta3 ~ c(0.0579)          # F
+    theta1 <- c(10.4)         # CL
+    theta2 <- c(-0.00032)     # Time
+    theta3 <- c(-0.057)       # BIL
+    theta4 <- c(0.079)        # ALT
+    theta5 <- c(0.20)         # BA
+    theta6 <- c(1.0)          # Ka
+    theta7 <- c(0.087)        # Proportional error
+
+    eta1 ~ c(0.059)           # CL
+   
   })
   model({
-    TVCL <- theta1 * (1 + theta4 * (AGE-2.25))
-    TVV <- theta2 * (1 + theta5 * (BSA-0.49))
-    TVF <- theta3 * (1 + theta6 * (WT-11.4) * ((1-BIL) + BIL * theta7))
+    TVCL <- theta1 
+    TVTIME <- theta2 
+    TVBIL <- theta3
+    TVALT <- theta4
+    BA <- theta5 
     
-    cl <- TVCL * (1 + eta1)
-    v <- TVV  * (1 + eta2)
-    BA <- TVF * (1 + eta3)
+    cl <- (TVCL* (1 + eta1))* ((WT/70)**0.75) * exp(theta2 * TIME) * exp(theta3 * BIL) * (1 - theta4 * ALT)
+    v <- 
+   
     
     #ke <- theta1 / theta2
     ke = cl/v
-    ka = theta8  # FIX
+    ka = theta6  # FIX
     
     d/dt(depot) = -ka * depot
     f(depot) = BA
     
     d/dt(center) = ka * depot - ke * center
     cp = center / v
-    cp ~ add(theta9)
+    cp ~ prop(theta7)
   })
 }
