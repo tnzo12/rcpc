@@ -71,7 +71,14 @@ f <- function() {
   model({
     TVCL <- theta1 * (1 + theta4 * (AGE-2.25))
     TVV <- theta2 * (1 + theta5 * (BSA-0.49))
-    TVF <- theta3 * (1 + theta6 * (WT-11.4) * ((1-BIL) + BIL * theta7))
+    WTVF <- theta3 * (1 + theta6 * (WT-11.4))
+    if (BIL>=200) {
+      TVF <- WTVF * (theta7) 
+    }
+    else{
+      
+      TVF <- WTVF 
+    }
     
     cl <- TVCL * (1 + eta1)
     v <- TVV  * (1 + eta2)

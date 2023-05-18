@@ -1,12 +1,13 @@
 # Tacrolimus population pk model
+# TPT를 POD로 통일함 (days단위)
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus Oral centeral model for Pediatric kidney transplant recipients"
-des_notes <- c("Mycophenolate mofetil, MMF and mycophenolic acid, MPA doses were adjusted to maintain AUC between 30 and 60 h*mg/L",
+des_intro <- "Tacrolimus Oral model for 43 children who underwent liver transplantation"
+des_notes <- c("Tacrolimus pre-dose steady-state blood concentrations collected approximately 12 h after a tacrolimus dose were recorded retrospectively for all samples taken over 1 year post-transplantation.",
                "<br>",
-               "A limited number of blood samples were obtained before, 1, 2, 3, 6, 12, 16 and 24 hours after drug intake")
+               "The immunosuppressive protocol consisted mainly of tacrolimus in combination with low dose steroids, with tacrolimus being administered orally in the form of capsules or as an oral suspension.")
 des_comp <- c("central", "depot")
-des_cov <- c("Body weight","Genotype of CYP3A5") # Strict 
+des_cov <- c("WT","CYP3A5","POD") # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -15,8 +16,8 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("WT", "CYP3A5")
-mod_cov_abbr <- c("Body weight", "Genotype of CYP3A5")
+mod_cov <- c("WT","CYP3A5","POD")
+mod_cov_abbr <- c("Body weight","Genotype of CYP3A5","Postoperative days")
 
 mod_route <- c("Oral")
 
@@ -42,39 +43,36 @@ mod_comp <- c(
 est_eta <-c('L/h'='cl',
             'L'='v')
 
-sd_eta <- sqrt(c(1.09,0.5,0.34)) # put sd^2 value in this vector
+sd_eta <- sqrt(c(0.16)) # put sd^2 value in this vector
 
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(1100)          # V/F
-    theta2 <- c(30.6)          # CL/F
-    theta3 <- c(1.66)          # CYP3A5
-    theta4 <- c(22.1)          # Exponential error
+    theta1 <- c(12.92)        # CL/F
+    theta2 <- c(-0.00158)     # POD
+    theta3 <- c(0.4282)       # CYP3A5 effect on clearance
     
-    theta5 <- c(0.872)         # Lag-time
-    theta6 <- c(8.34)          # Ka
+    theta4 <- c(0.125)        # Proportional error
+   
+    theta5 <- c(4.5)          # Ka
+    theta6 <- c(30)           # V/F (FIX)
     
-    eta1 ~ c(1.09)              # Ka
-    eta2 ~ c(0.5)             # V/F
-    eta3 ~ c(0.34)             # CL/F
+    eta1 ~ c(0.16)           # CL/F
+    
   })
   model({
-    Tlag <- theta5
-    TVKA <- theta6
-    TVV <- theta1 * (WT/70)
-    TVCL <- theta2 * ((WT/70)**0.75) * (theta3**CYP3A5)
+    ka <- theta5
     
-    cl <- TVCL * exp(eta2)
-    v <- TVV  * exp(eta3)
-    ka <- TVKA * exp(eta1)
-
+    TVCL <- theta1 * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
+    cl <- TVCL * exp(eta1)
+    v <- theta6
+    
     #ke <- theta1 / theta2
     ke = cl/v
-
+    
     d/dt(depot) = -ka * depot
     d/dt(center) = ka * depot - ke * center
     cp = center / v
-    cp ~ prop(theta4)
+    cp ~ prop(theta4) 
   })
 }
