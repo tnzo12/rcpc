@@ -54,8 +54,7 @@ pk_color <- '#FF6666'
     ini({
       theta1 <- c(log(22.9))       # CL/F
       theta2 <- c(log(716))        # V/F
-      theta3 <- c(3.7)             # Additive error 
-      theta4 <- c(0.0168)          # Proportional error 
+      theta3 <- c(0.1484)          # Proportional error 
       
       eta1 ~ c(0.2215)         # CL/F
       eta2 ~ c(0.2128)          # V/F
@@ -70,13 +69,13 @@ pk_color <- '#FF6666'
 
 
       cl <- exp(theta1 + eta1) * exp(CYP) * exp(HCT2) * (POD**-0.00762)
-      v <- exp(theta2 + eta2)
+      v <- exp(theta2 + eta2) * exp(0.355*WT/59.025)
       ke = cl/v
       
       d/dt(depot) = - ka * depot
       d/dt(center) = ka * depot - ke * center
       cp = center / v
-      cp ~ add(theta3) + prop(theta4)
+      cp ~ prop(theta3)
     })
   }
   
