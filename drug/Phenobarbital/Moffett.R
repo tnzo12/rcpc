@@ -38,7 +38,8 @@ scheme_image <- "https://els-jbs-prod-cdn.jbs.elsevierhealth.com/cms/attachment/
 
 # Compartment designation -------------------------------------------
 mod_comp <- c(
-  enteral = 1, IV=2,
+  enteral = 1,
+  IV=2,
   SDC = 2,
   NONE = 10
 )
