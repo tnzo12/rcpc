@@ -6,7 +6,7 @@ des_notes <- c("- measurement time is recommended to be matched with the first d
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
-des_cov <- "CYP3A5, HCT, POD, WT" # Strict 
+des_cov <- "CYP3A5_33, CYP3A5_13, CYP3A5_11, HCT, POD, WT" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -15,8 +15,8 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5", "HCT", "POD", "WT")
-mod_cov_abbr <- c("0 for *1/*1, 1 for *1/*3, 2 for *3/*3")
+mod_cov <- c("CYP3A5_33", "CYP3A5_13","CYP3A5_11","HCT", "POD", "WT")
+mod_cov_abbr <- c("1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","hematocrit", "post operational days", "weight")
 
 mod_route <- c("PO")
 
@@ -62,13 +62,8 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.5
       if(HCT <=33) {HCT2 <- 0.297} else {HCT2 <- 0.117}
-      
-      if(CYP3A5==0) {CYP <- 0.2225} 
-      else{if(CYP3A5==1) {CYP <- 0.17} else {CYP <- 0.0525}}
-      
 
-
-      cl <- exp(theta1 + eta1) * exp(CYP) * exp(HCT2) * (POD**-0.00762)
+      cl <- exp(theta1 + eta1) * exp(0.225*CYP3A5_11+0.17*CYP3A5_13+0.0525*CYP3A5_33) * exp(HCT2) * (POD**-0.00762)
       v <- exp(theta2 + eta2) * exp(0.355*WT/59.025)
       ke = cl/v
       
