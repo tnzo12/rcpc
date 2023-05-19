@@ -87,7 +87,7 @@ f <- function() {
     TVKA <- theta1 * ((1+ (theta13*FORM) + (theta14 * (1-FORM))))
     ka <- TVKA * exp(eta1)
     
-    FDTOT <- exp((theta10)*(3000 - 2))   # Dose가 걸려있어서 3000ng 투여한다는 가정으로 수식 작성
+    FDTOT <- exp((theta10)*(AMT/1000 - 2))   # Dose가 걸려있어서 3000ng 투여한다는 가정으로 수식 작성
     FFOR <- 1 + ((theta11*FORM) + (theta12 *(1-FORM)))
     TVF <- 100 * FDTOT * FFOR
     BA <- TVF * exp(eta3)
@@ -111,6 +111,8 @@ f <- function() {
     d/dt(depot) = -ka * depot
     d/dt(center) = ka * depot -k12 * center + k21 * peri - ke * center
     d/dt(peri) = k12 * center - k21 * peri
+    
+    lag(depot) = exp(tlag)
     
     cp = center / v1
     cp ~ add(theta15) # Additive error

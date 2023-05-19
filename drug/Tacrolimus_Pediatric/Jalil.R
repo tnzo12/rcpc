@@ -63,9 +63,8 @@ f <- function() {
   model({
     ka <- theta5
     
-    TVCL <- theta1 * exp(eta1)
-  
-    cl <- TVCL * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
+    TVCL <- theta1 * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
+    cl <- TVCL * exp(eta1)
     v <- theta6
     
     #ke <- theta1 / theta2

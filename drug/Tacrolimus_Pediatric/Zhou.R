@@ -1,4 +1,12 @@
 # Tacrolimus population pk model
+# CYP3A5 = 1 if CYP3A5 *1/*3 
+# CYP3A5 = 0 if CYP3A5*3/*3
+
+
+
+
+
+
 
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus Oral centeral model for Pediatric kidney transplant recipients"
@@ -71,9 +79,12 @@ f <- function() {
 
     #ke <- theta1 / theta2
     ke = cl/v
-
+    
     d/dt(depot) = -ka * depot
     d/dt(center) = ka * depot - ke * center
+    
+    lag(depot) = exp(Tlag)
+    
     cp = center / v
     cp ~ prop(theta4)
   })
