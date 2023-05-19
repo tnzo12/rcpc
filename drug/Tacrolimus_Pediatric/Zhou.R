@@ -79,9 +79,12 @@ f <- function() {
 
     #ke <- theta1 / theta2
     ke = cl/v
-
+    
     d/dt(depot) = -ka * depot
     d/dt(center) = ka * depot - ke * center
+    
+    lag(depot) = exp(Tlag)
+    
     cp = center / v
     cp ~ prop(theta4)
   })

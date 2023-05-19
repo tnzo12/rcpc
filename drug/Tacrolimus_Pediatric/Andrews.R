@@ -108,6 +108,8 @@ f <- function() {
     d/dt(center) = ka * depot -k12 * center + k21 * peri - ke * center
     d/dt(peri) = k12 * center - k21 * peri
     
+    lag(depot) = exp(tlag)
+    
     cp = center / v1
     cp ~ prop(theta13) + add(theta12) # Combined error
   })
