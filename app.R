@@ -1158,8 +1158,8 @@ server <- function(input, output, session) {
           # if: type of observation is more than one
           obsht <- obsht %>% hot_col(col = "Type", type = "dropdown", source = mod_obs)
         }
-        if(exists("mod_lcov")){
-          # if listed covariate exists
+        if(!is.null(mod_lcov)){
+          # if listed covariate is not null
           for (i in mod_lcov){
             obsht <- obsht %>% hot_col(col = i, type = "dropdown", source = names(mod_lcov_value[[i]]))
           }

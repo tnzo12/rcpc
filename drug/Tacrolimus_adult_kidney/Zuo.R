@@ -16,6 +16,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("CYP3A4_11","CYP3A4_1g","CYP3A4_gg", "CYP3A5_33","CYP3A5_13","CYP3A5_11","HCT", "POD", "WT")
+mod_lcov = NULL # covariates with dropdown list
+mod_lcov_value <- NULL
 mod_cov_abbr <- c("1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","hematocrit","post operation days", "weight")
 
 mod_route <- c("PO")

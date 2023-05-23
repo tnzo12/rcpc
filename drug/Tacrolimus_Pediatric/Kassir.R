@@ -17,6 +17,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("WT")
+mod_lcov = NULL # covariates with dropdown list
+mod_lcov_value <- NULL
 mod_cov_abbr <- c("Body weight")
 
 mod_route <- c("Oral")
