@@ -15,7 +15,7 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5","WT","DL","HCT","eGFR","CYP3A4")
+mod_cov <- c("CYP3A5","WT","DL","HCT","eGFR")
 
 mod_lcov = c("CYP3A5") # covariates with dropdown list
 mod_lcov_value <- list(CYP3A5 = c('1*1*'=0,'1*3*'=1,'3*3*'=2))
