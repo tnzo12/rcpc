@@ -4,7 +4,7 @@
 des_intro <- "Tacrolimus model for adult patients with liver transplantation"
 des_notes <- c("-Genotype testing on CYP3A5 enzyme need to be done for this model",
                "<br>",
-               "-If Donor or Recipient's CYP3A5 *3/*3 -> Y  ")
+               "-Donor or Recipient's CYP3A5 need to be selected")
 des_comp <- "depot, center"
 des_cov <- "TBIL, CYPD, CYPR" # Strict 
 
@@ -15,7 +15,9 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("TBIL", "CYPR", "CYPD")
-mod_cov_abbr <- c("Total bilirubin(umol/L)", "Donor CYP3A5 *3/*3 (Y/N)", "Recipient CYP3A5 *3/*3 (Y/N)" )
+mod_cov_value <- list(CYPD = c('*3*3'=1,'others'=0))
+mod_cov_value <- list(CYPR = c('*3*3'=1,'others'=0))
+mod_cov_abbr <- c("Total bilirubin(umol/L)", "Donor CYP3A5", "Recipient CYP3A5" )
 
 mod_route <- c("PO")
 
@@ -75,14 +77,11 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.48    # fixed
       
-      #IF 절 추가해야함
       if(TBIL<=25.7){TBIL <- 0
       } else if(TBIL<51.4){TBIL <- 1
       } else if(TBIL<77.1){TBIL <- 2
       } else if(TBIL<128.5){TBIL <- 3
       } else {TBIL <-4}
-      if(CYPD==Y){CYPD <- 1 } else { CYPD <- 0 } # Donor CYP 
-      if(CYPR==Y){CYPR <- 1 } else { CYPR <- 0 } # Recipient CYP 
       tcl <- theta1 - theta3 * TBIL + theta4 * (1-CYPD) + theta5 * (1-CYPR)
       cl <- tcl * exp(eta1)
       

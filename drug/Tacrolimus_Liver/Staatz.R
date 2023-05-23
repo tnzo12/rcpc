@@ -6,18 +6,17 @@ des_notes <- c("- Some notes for the model will appear here",
                "<br>",
                "- ex) Characteristics of covariates")
 des_comp <- "depot, center"
-des_cov <- "AST, WT" # Strict 
+des_cov <- "AST, BW" # Strict 
 
 des_params <- c("- Vd: Volume of distritubtion(tacrolimus)","<br>",
                 "- Cl: clearance (tacrolimus)","<br>")
 # observation value -------------------------------------------------
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
-mod_cov <- c("AST", "WT")
-mod_cov_abbr <- c("Aspartate aminotransferase(U/L)", "Weight(kg)")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("Aspartate aminotransferase", "Weight")
+
+mod_cov <- c("AST", "BW")
+mod_cov_abbr <- c("Aspartate aminotransferase(U/L)", "Bodyweight(kg)")
+
 mod_route <- c("PO")
 
 # plot option -------------------------------------------------------
@@ -74,7 +73,7 @@ f <- function(){
    if(AST>=70){tcl <- theta2 } else { tcl <- theta1 } 
    cl <- tcl * exp(eta1)
    
-   tv <- theta3 * (WT/72.1)
+   tv <- theta3 * (BW/72.1)
    v <- tv * exp(eta2)
    
    ke = cl/v

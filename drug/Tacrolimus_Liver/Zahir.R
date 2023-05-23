@@ -2,7 +2,7 @@
 
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus model for adult patients with liver transplantation"
-des_notes <- c("-Co-administered drug (diltiazem and fluconazole) choose: Y/N",
+des_notes <- c("-Co-administered drug (diltiazem and fluconazole) choose: Yes/No",
                "<br>",
                "- Note 2 ")
 des_comp <- "depot, center"
@@ -15,7 +15,9 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("HCT", "ALB", "DIL", "FLU")
-mod_cov_abbr <- c("Hematocrit(%)", "Albumin(g/dL)", "Diltiazem coadministration(Y/N)", "Fluconazole coadministration(Y/N)")
+mod_lcov_value <- list(DIL = c('Yes'=1,'No'=0))
+mod_lcov_value <- list(FLU = c('Yes'=1,'No'=0))
+mod_cov_abbr <- c("Hematocrit(%)", "Albumin(g/dL)", "Diltiazem coadministration", "Fluconazole coadministration")
 
 mod_route <- c("PO")
 
@@ -62,7 +64,7 @@ pk_color <- '#FF6666'
       theta4 <- c(3.4)             # theta on albumin
       theta5 <- c(2.1)             # theta on diltiazem coadministration
       theta6 <- c(7.4)             # theta on fluconazole coadministration
-      theta7 <- c(0, 0.243)     # residual random error  
+      theta7 <- c(0, 0.243)        # residual random error  
       
       # ETAs
       eta1 ~ c(0.0952)      # IIV CL/F
@@ -74,8 +76,7 @@ pk_color <- '#FF6666'
       
       if(HCT < 35){HCT <- 0} else {HCT <- 1 }
       if(ALB < 3.5){ALB <- 0} else {ALB <- 1 }
-      if(DIL == Y){DIL <- 1} else {DIL <- 0 }
-      if(FLU == Y){FLU <- 1} else {FLU <- 0 } 
+  
       tcl <- theta1 + theta3 * (1-HCT) + theta4 * (1-ALB) - theta5 * DIL - theta6 * FLU
       cl <- tcl * exp(eta1)
       
