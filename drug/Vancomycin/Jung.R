@@ -19,6 +19,8 @@ mod_obs <- c("SDC", "CRP") # {**should be matched with compartment order in mode
 mod_obs_abbr <- c("Serum drug concentration", "C-reactive protein")
 
 mod_cov <- c("PCA", "WT")
+mod_lcov = NULL # covariates with dropdown list
+mod_lcov_value <- NULL
 mod_cov_abbr <- c("Postconceptual age", "Weight")
 
 mod_route <- c("IV", "PO", "SC")

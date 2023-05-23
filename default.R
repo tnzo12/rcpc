@@ -18,7 +18,9 @@ des_params <- c("- Ka: Absorption rate constant","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("Cov1", "Cov2")
+mod_cov <- c("Cov1", "Cov2", "Cov3")
+mod_lcov = c("Cov3") # covariates with dropdown list
+mod_lcov_value <- list(Cov3 = c(Stat1=1, Stat2=2, Stat3=3))
 mod_cov_abbr <- c("Covariate1", "Covariate2")
 
 mod_route <- c("IV", "PO")

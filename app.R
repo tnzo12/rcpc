@@ -140,7 +140,18 @@ css <- "
   border-radius: 4px;
   background-color: #59626A;
 }
-
+.handsontable.listbox td {
+  background: #59626A;
+}
+.handsontable.listbox td.htDimmed {
+  color: white;
+}
+.handsontable.listbox tr:hover td {
+  background: #6699cc; 
+}
+.handsontable.listbox tr td.current {
+  background: #ffb347; 
+}
 "
 # badge theme (reactable)
 css_rt <- " 
@@ -1029,7 +1040,6 @@ server <- function(input, output, session) {
     
     ifelse(
       # if
-      #!is.null(model)
       sum(paste0(
         drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
                                       pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
@@ -1080,6 +1090,7 @@ server <- function(input, output, session) {
     eventExpr = {
       ifelse(is.null(input$model),TRUE,input$model) # regard TRUE when model is not selected
     },
+    
     handlerExpr = {
     mod_env() # refresh model environment when model is selected
     values$doseh_ini <- data.frame(Date=Sys.Date(),
@@ -1116,48 +1127,73 @@ server <- function(input, output, session) {
   })
   
   
-  # Uploading generated (updated by node selection) table
-  output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
-    mod_env()
-    rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
-      hot_col(col = "Route", type = "dropdown", source = mod_route) %>% 
-      hot_col(col = "Hour", default = 0) %>% 
-      hot_col(col = "Min", default = 0) %>% 
-      #hot_cols(renderer=renderer, halign = "htCenter")
-      hot_cols(halign = "htCenter")
-    
-  })
+  # Uploading generated (updated by node selection = environment change) table
+  observeEvent(
+    eventExpr = {
+      mod_env()  
+    },
+    handlerExpr = {
+      mod_env()  
+      output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
+        dosht <- rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
+          hot_col(col = "Hour", default = 0) %>% 
+          hot_col(col = "Min", default = 0) %>% 
+          hot_cols(halign = "htCenter") %>% 
+          hot_table(overflow = "visible", stretchH = "all")
+        
+        if(length(mod_route)>1){ # if: route of administration type is more than one
+          dosht <- dosht %>% hot_col(col = "Route", type = "dropdown", source = mod_route)
+        }
+        dosht
+      })
+      
+      output$obsh <- renderRHandsontable({ # needed observation types will appear in this table
+        obsht <- rhandsontable(values$obsh_ini, rowHeaders = NULL,stretchH = "all", overflow="visible") %>% 
+          hot_col(col = "Hour", default = 0) %>% 
+          hot_col(col = "Min", default = 0) %>% 
+          hot_cols(halign = "htCenter") %>% 
+          hot_table(overflow = "visible", stretchH = "all")
+        
+        if(length(mod_obs)>1){
+          # if: type of observation is more than one
+          obsht <- obsht %>% hot_col(col = "Type", type = "dropdown", source = mod_obs)
+        }
+        if(!is.null(mod_lcov)){
+          # if listed covariate is not null
+          for (i in mod_lcov){
+            obsht <- obsht %>% hot_col(col = i, type = "dropdown", source = names(mod_lcov_value[[i]]))
+          }
+        }
+        obsht
+      })
+      
+      output$sim_doseh <- renderRHandsontable({ # needed administration routes will appear in this table
+        simt <- rhandsontable(values$sim_doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
+          hot_col(col = "Hour", default = 0) %>% 
+          hot_col(col = "Min", default = 0) %>%
+          hot_cols(halign = "htCenter") %>% 
+          hot_table(overflow = "visible", stretchH = "all")
+        
+        if(length(mod_route)>1){ # if: route of administration is more than one
+          simt <- simt %>% hot_col(col = "Route", type = "dropdown", source = mod_route)
+        }
+        simt
+      })
+      
+    }
+  )
   
-  output$obsh <- renderRHandsontable({ # needed observation types will appear in this table
-    mod_env()
-    rhandsontable(values$obsh_ini, rowHeaders = NULL,stretchH = "all") %>% 
-      hot_col(col = "Type", type = "dropdown", source = mod_obs) %>% 
-      hot_col(col = "Hour", default = 0) %>% 
-      hot_col(col = "Min", default = 0) %>% 
-      #hot_cols(renderer=renderer, halign = "htCenter")
-      hot_cols(halign = "htCenter")
-    
-  })
-  
-  output$sim_doseh <- renderRHandsontable({ # needed administration routes will appear in this table
-    mod_env()
-    rhandsontable(values$sim_doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
-      hot_col(col = "Route", type = "dropdown", source = mod_route) %>% 
-      hot_col(col = "Hour", default = 0) %>% 
-      hot_col(col = "Min", default = 0) %>% 
-      #hot_cols(renderer=renderer, halign = "htCenter")
-      hot_cols(halign = "htCenter")
-    
-  })
-  
-  # Get inputs form buttons: estimation and simulation
-  
-  
+
+  # Get inputs form buttons: estimation and simulation  
   
   # Download table input from UI -> Processing ======================
-  # Data processing method
+  
+  
   observeEvent(input$run_button, {
     mod_env() # load model's environment
+    
+    
+    # Data processing method
     
     # Loading dosing history from ui input
     doseh <- dplyr::bind_rows( # combining estimation/simulation dataset
@@ -1174,7 +1210,6 @@ server <- function(input, output, session) {
              CMT = mod_comp[Route],
              RATE = ifelse(Dur!=0, AMT/Dur,0)) # if duration exists, RATE generated
     
-    values$doseh <- doseh
     output$dosehis <- renderTable({doseh})
     
     
@@ -1190,7 +1225,6 @@ server <- function(input, output, session) {
              condi = 'est') %>% # labeling: estimation dataset
       rename(DV = Val)
     
-    values$obsh <- obsh
     output$obshis <- renderTable({obsh}) # debugging table, observation history
     
     
@@ -1206,37 +1240,12 @@ server <- function(input, output, session) {
     
     # Model designated function -----------------------------------------------
     f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"]
+    f_data <- f_data %>% subset(select= -c(Dur, Type))
     # put any logical equations about covariates in models
     # -------------------------------------------------------------------------
-    
-    # Table output (sorted history data)
-    values$f_data <- subset(f_data, select= -c(Dur, Type))
-  })
-  
-
-  
-  sim_start_time <- reactive({ # simulation start time
-    sim_hist <- subset(values$f_data, condi=='sim' & ID==input$ID)
-    sim_hist[is.na(sim_hist)] <- 0
-    sim_hist <- head(sim_hist, 1)
-    sim_start_time <- sim_hist[1,"TIME"]
-    sim_start_time
-  })
-  
-  
-  # Estimation tab ==================================================
-  
-  # model scheme rendering from website 
-  output$scheme <- renderUI({
-    mod_env() # load model's environment
-    tags$img(src = scheme_image)
-  })
-  
-  # starts fitting when estimation button is pressed 
-  fit.s <- eventReactive(input$run_button, {
     fit.s <- nlmixr(
       object = f,
-      data = subset(values$f_data, condi=='est'),
+      data = subset(f_data, condi=='est'),
       est = input$est_method, # post-hoc method, https://github.com/nlmixrdevelopment/nlmixr/issues/32
       foceiControl(eval.max = input$eval_max,
                    maxInnerIterations = input$inner_iter,
@@ -1247,21 +1256,22 @@ server <- function(input, output, session) {
     fit.s <- fit.s %>%
       mutate(CMT = if(is.null(fit.s$CMT)) {pk_obs} else {mod_obs[as.numeric(CMT)]} ) %>% 
       rename(Time = TIME)
-    values$fit.s <- fit.s
-
-    fit.s
-  })
-  
-  
-  output$data_arr5 <- renderTable({ fit.s() }) # debugging table, fit results
-  
-  
-  # estimation table for plot =======================================
-  est_table <- observeEvent(input$run_button, { # Dose simulation on simulation box
     
-    mod_env()
-    fit.s <- fit.s() # fitted data
-    f_data <-  values$f_data # completed history table
+    
+    
+    # Table output (sorted history data)
+    values$doseh <- doseh
+    values$obsh <- obsh
+    values$f_data <- f_data
+    # simulation end time
+    values$sim_endtime <- f_data %>% filter(condi=='sim') %>%
+      replace(is.na(.), 0) %>% 
+      last() %>% select(TIME) %>% as.vector() # last simulation record, select time as vector
+    values$fit.s <- fit.s
+    
+    # estimation table for plot =======================================
+    
+    # ---------------------------------------------------------------------------------------------
     
     # data subsetting: amt + cov_data -> merged ev
     amt_data <- subset(f_data, !is.na(f_data$AMT))
@@ -1296,9 +1306,9 @@ server <- function(input, output, session) {
     
     
     
-
+    
     # 'iiv' version for VPC(visual predictive check), 'no-iiv' version for simple simulation
-
+    
     # 1) estimated eta
     eta_table <- fit.s$eta %>% slice(n()) %>% select(-ID) # fit result > last time eta estimates
     values$eta_table <- eta_table
@@ -1317,10 +1327,11 @@ server <- function(input, output, session) {
       unlist() %>% unname()
     hist_dose <- f_data %>% filter(is.na(DV)) # only dosing history
     hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
-
     
     
-    sim_start_time <- sim_start_time()
+    
+    sim_endtime <- values$sim_endtime
+    
     # simulation without IIV: list[[1]] ------------------------
     sim_res_noiiv <- rxSolve(object = fit.s,
                              events = ev_noiiv,
@@ -1337,13 +1348,13 @@ server <- function(input, output, session) {
       .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>%
       setnafill(cols = "auc_divide", fill=0) %>% 
       .[, tad := (time - first(time)), by=dose_divide] # time after dose
-      #.[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide] # individual AUC
+    #.[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide] # individual AUC
     
     
     
     
     
-    sim_res_noiiv$condi <- ifelse(sim_res_noiiv$time < as.numeric(sim_start_time),'est','sim')
+    sim_res_noiiv$condi <- ifelse(sim_res_noiiv$time < as.numeric(sim_endtime),'est','sim')
     sim_res_noiiv$condi[is.na(sim_res_noiiv$condi)] <- 'est'
     
     # simulation with IIV: list[[2]] ---------------------------
@@ -1352,16 +1363,16 @@ server <- function(input, output, session) {
                            nSub = input$vpc_opt, # how many simulations will be generated
                            seed = input$vpc_seed) %>%  data.table() %>% rename(Time=time)
     
-    sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_start_time),'est','sim')
+    sim_res_iiv$condi <- ifelse(sim_res_iiv$Time < as.numeric(sim_endtime),'est','sim')
     sim_res_iiv$condi[is.na(sim_res_iiv$condi)] <- 'est'
-   
+    
     
     values$sim_res_iiv <- sim_res_iiv
     
     sim_res_piiv <- data.table::melt(sim_res_iiv,
-                                    id.vars = c("Time","condi"),
-                                    measure.vars = c(if(is.na(pk)){NULL}else{pk},
-                                                     if(is.na(pd)){NULL}else{pd})) %>%
+                                     id.vars = c("Time","condi"),
+                                     measure.vars = c(if(is.na(pk)){NULL}else{pk},
+                                                      if(is.na(pd)){NULL}else{pd})) %>%
       .[, .(P05 = quantile(value, 0.05),
             P25 = quantile(value, 0.25),
             P50 = quantile(value, 0.50),
@@ -1391,10 +1402,22 @@ server <- function(input, output, session) {
     values$sim_res_piiv <- sim_res_piiv # sim_res_iiv: percentile
     values$prm_iivs <- prm_iivs
     
+    
   })
   
   
+  # Estimation tab ==================================================
   
+  # model scheme rendering from website 
+  output$scheme <- renderUI({
+    mod_env() # load model's environment
+    tags$img(src = scheme_image)
+  })
+  
+
+  
+  
+  output$data_arr5 <- renderTable({ values$fit.s }) # debugging table, fit results
   
   output$param_vis <- renderPlotly({
     
@@ -1453,7 +1476,7 @@ server <- function(input, output, session) {
       est_hist <- tail(est_hist, 1)
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
-      fit.s <- fit.s()
+      fit.s <- values$fit.s
       sim_res_noiiv <- values$sim_res_noiiv %>%
         rename(Time = time, Estimated = pk)
       sim_res_piiv <- values$sim_res_piiv %>%
@@ -1501,7 +1524,7 @@ server <- function(input, output, session) {
       est_hist <- tail(est_hist, 1)
       est_endtime <- est_hist[1,"TIME"] + est_hist[1,"ADDL"] * est_hist[1,"II"] + 48
       
-      fit.s <- fit.s()
+      fit.s <- values$fit.s
       sim_res_noiiv <- values$sim_res_noiiv %>%
         rename(Time = time, Estimated=pd)
       sim_res_piiv <- values$sim_res_piiv %>%
@@ -1519,10 +1542,8 @@ server <- function(input, output, session) {
   
   
   output$gof <- renderPlotly({
-    fit.s <- fit.s()
+    fit.s <- values$fit.s
     fit.s$CMT <- factor(fit.s$CMT, levels=mod_obs)
-    #fit.s$CMT <- mod_obs[as.numeric(fit.s$CMT)] 
-    #fit.s$CMT <- factor(fit.s$CMT, levels=mod_obs)
     
     fit.s <- subset(fit.s, select = c("CMT", "TIME", "DV", "PRED", "RES", "WRES", "IPRED", "IRES", "IWRES", mod_cov))
     
@@ -1574,7 +1595,7 @@ server <- function(input, output, session) {
   # Simulation result table
   sim_summary <- reactive({
     
-    sim_start_time <- sim_start_time()
+    sim_endtime <- values$sim_endtime
     
     
     sim_res_noiiv <- values$sim_res_noiiv
@@ -1586,7 +1607,7 @@ server <- function(input, output, session) {
       mutate(dif=c(NA,diff(ipredSim))) %>%
       mutate(dif_ratio = abs(dif / ipredSim)) %>% 
       subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
-      filter(time>sim_start_time)
+      filter(time>sim_endtime)
     
     
     sim_res_trough <- sim_res_noiiv %>%
@@ -1596,7 +1617,7 @@ server <- function(input, output, session) {
       slice(2:n()) %>% 
       slice(1:n()-1) %>% 
       subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
-      filter(time>sim_start_time)
+      filter(time>sim_endtime)
     
     
     # if it is continuous infusion (comparison between prior point)
@@ -1604,7 +1625,7 @@ server <- function(input, output, session) {
       mutate(dif = c(NA,diff(sim_res_noiiv$ipredSim))) %>% 
       mutate(dif_ratio = abs(dif / ipredSim)) %>% 
       subset(dif_ratio<=0.001 & dif_ratio>=0) %>% 
-      filter(time>sim_start_time)
+      filter(time>sim_endtime)
     
     
     # concentration table: list[[1]]
@@ -1647,7 +1668,7 @@ server <- function(input, output, session) {
       '- From simulation point :',
       "</i>",
       '</span>',
-      sim_summary()[[2]] - sim_start_time() ,
+      sim_summary()[[2]] - values$sim_endtime ,
       '<span style="color:grey">',
       "<i>",
       "hours",

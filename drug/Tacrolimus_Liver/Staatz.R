@@ -15,9 +15,13 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("AST", "WT")
+<<<<<<< HEAD:drug/Tacrolimus_Liver/Staatz.R
+mod_cov_abbr <- c("Aspartate aminotransferase(U/L)", "Weight(kg)")
+=======
 mod_lcov = NULL # covariates with dropdown list
 mod_lcov_value <- NULL
 mod_cov_abbr <- c("Aspartate aminotransferase", "Weight")
+>>>>>>> 7b8cb8043d27d76c88cfef4829f15d5e2ae16ebb:drug/Tacrolimus_Liver/Staatz et al.R
 
 mod_route <- c("PO")
 
@@ -80,8 +84,8 @@ f <- function(){
    
    ke = cl/v
    
-   d/dt(depot) = -ka * dapot
-   d/dt(center) = ka * depot - ka * center
+   d/dt(depot) = -ka * depot
+   d/dt(center) = ka * depot - ke * center
    
    cp = center / v
    cp ~ add(theta4)
