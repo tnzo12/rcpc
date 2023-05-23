@@ -16,8 +16,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("CYP3A5","WT","DL","HCT","eGFR")
-mod_lcov = c("CYP3A5") # covariates with dropdown list
-mod_lcov_value <- list(CYP3A5 = c('1*1*'=0,'1*3*'=1,'3*3*'=2))
+mod_lcov = c("CYP3A5","DL") # covariates with dropdown list
+mod_lcov_value <- list(CYP3A5 = c('1*1*'=0,'1*3*'=1,'3*3*'=2), DL = c('YES' =1, 'NO' =0))
 
 mod_cov_abbr <- c("Genotype of CYP3A5","Body weight","Donor Living", "Hematocrit","eGFR")
 
@@ -86,7 +86,7 @@ f <- function() {
     TVKA <- theta2
     ka <- TVKA * exp(eta1)
     
-    WHTVCL <- theta3 * ((WT/70)**0.75) * (1+(CYP3A5)) * exp(theta10 * DL) * ((eGFR/69)**theta9) # CYP3A5가 *3/*3이면 0, 아니면 1 / DL이 living이면 1, 아니면 0
+    WHTVCL <- theta3 * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) # CYP3A5가 *3/*3이면 0, 아니면 1 / DL이 living이면 1, 아니면 0
     if (HCT<0.3) {
       TVCL <- WHTVCL * ((HCT/0.3)**theta11) 
     }

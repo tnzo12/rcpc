@@ -16,8 +16,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("POD","AGE","DCYP3A5","FZLDne","WT","RCYP3A5","RABCB1","DCYP3A4","FZLDe")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
+mod_lcov = c("DCYP3A5","FZLDne","RCYP3A5","RABCB1","DCYP3A4","FZLDe") # covariates with dropdown list
+mod_lcov_value <- list(DCYP3A5 = c('1*1*'=1,'1*3*'=1,'3*3*'=0), FZLDne = c('YES' =1, 'NO' =0), RCYP3A5 = c('1*1*'=1,'1*3*'=1,'3*3*'=0), RABCB1 = c('MUTATION' =1, 'NOT MUTATION' =0), DCYP3A4 = c('CYP3A4*1/*22'=1, 'CYP3A4*22/*22'=1, 'Other'=0), FZLDe = c('YES'=1, 'NO'=0))
 mod_cov_abbr <- c("Postoperative days","Age", "Donor's Genotype of CYP3A5","Fluconazole patients use","Body weight","Recipient's Genotype of CYP3A5","Recipient's Genotype of ACB1","Donor's Genotype of CYP3A4","Fluconazole donor use")
 
 mod_route <- c("Oral")
