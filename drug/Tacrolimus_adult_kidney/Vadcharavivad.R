@@ -73,4 +73,3 @@ pk_color <- '#FF6666'
       cp ~ add(theta3) + prop(theta4)
     })
   }
-  S
