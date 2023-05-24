@@ -17,8 +17,7 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("DCYP3A5", "RCYP3A5")
-mod_lcov_value <- list(DCYP3A5= c('Yes'=1,'No'=0))
-mod_lcov_value <- list(RCYP3A5= c('Yes'=1,'No'=0))
+mod_lcov_value <- list(DCYP3A5= c('Yes'=1,'No'=0, RCYP3A5= c('Yes'=1,'No'=0)))
 mod_cov_abbr <- c("Donor's CYP3A5*1 Genotype(yes/no)", "Recipient's CYP3A5*1 Genotype(yes/no)" )
 
 mod_route <- c("PO")
