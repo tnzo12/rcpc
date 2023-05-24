@@ -15,9 +15,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("TBIL", "CYPR", "CYPD")
-mod_cov_value <- list(CYPD = c('*3*3'=1,'others'=0))
-mod_cov_value <- list(CYPR = c('*3*3'=1,'others'=0))
-mod_cov_abbr <- c("Total bilirubin(umol/L)", "Donor CYP3A5", "Recipient CYP3A5" )
+mod_cov_value <- list(CYPR = c('*3*3'=1,'others'=0, CYPD = c('*3*3'=1,'others'=0)))
+mod_cov_abbr <- c("Total bilirubin(umol/L)", "Recipient CYP3A5", "Donor CYP3A5" )
 
 mod_route <- c("PO")
 

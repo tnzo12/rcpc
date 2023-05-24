@@ -11,10 +11,12 @@ des_cov <- "POD, ALB, AST" # Strict
 des_params <- c("- Cl: clearance (tacrolimus)","<br>",
                 "- V: Volume of distritubtion(tacrolimus)","<br>")
 # observation value -------------------------------------------------
-mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
+mod_obs <- c("SDC") # {**should be matched with compartment order in model equation} 
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("POD", "ALB", "AST")
+mod_lcov <- NULL
+mod_lcov_value <- NULL
 mod_cov_abbr <- c("Postoperative days", "Albumin(g/L)", "AST(U/L)")
 
 mod_route <- c("PO")
@@ -30,7 +32,7 @@ pk_color <- '#FF6666'
   pd_obs <- NA
   pd_color <- NA
   pd_x_label <- NA
-  pd_y_label <- NA
+  pd_y_label <- NA 
   
   # model scheme image ------------------------------------------------
   scheme_image <- "http://www.turkupetcentre.net/petanalysis/pic/pk-2cm.svg"
