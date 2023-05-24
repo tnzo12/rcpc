@@ -15,6 +15,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("AST", "BW")
+mod_lcov <- NULL
+mod_lcov_value <- NULL
 mod_cov_abbr <- c("Aspartate aminotransferase(U/L)", "Bodyweight(kg)")
 
 mod_route <- c("PO")
