@@ -63,7 +63,7 @@ pk_color <- '#FF6666'
       # thetas
       theta1 <- c(0.743)      # CL (L/h)
       theta2 <- c(1.64)       # volume of distribution (L/kg)
-      theta3 <- c(0.0732)     # bioavailability
+      theta3 <- c(0.0732)     # F
       theta4 <- c(0.792)      # theta on HF
       theta5 <- c(0.0157)     # theta on POD (L/h/day)
       theta6 <- c(0.810)      # theta on RF
