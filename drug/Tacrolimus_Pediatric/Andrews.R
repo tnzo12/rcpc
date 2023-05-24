@@ -79,8 +79,8 @@ f <- function() {
     eta2 ~ c(0.25)         # CL/F IIV
     eta3 ~ c(0.624)        # V1/F IIV
     eta4 ~ c(0.7)          # V2/F IIV
-    eta5 ~ c(0.18)         # CL/F IOV
-    eta6 ~ c(0.34)         # V2/F IOV
+    #eta5 ~ c(0.18)         # CL/F IOV
+    #eta6 ~ c(0.34)         # V2/F IOV
     
   })
   model({
@@ -96,11 +96,14 @@ f <- function() {
       
       TVCL <- WHTVCL 
     }
-    cl <- TVCL * exp(eta2 + eta5)
+    
+        
+    cl <- TVCL * exp(eta2)
     TVV1 <- theta4
     v1 <- TVV1 * exp(eta3)
+    
     TVV2 <- theta6
-    v2 <- TVV2 * exp(eta4 + eta6)
+    v2 <- TVV2 * exp(eta4)
     q <- theta5 
     
     

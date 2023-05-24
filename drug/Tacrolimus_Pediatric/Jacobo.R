@@ -75,8 +75,7 @@ f <- function() {
     theta6 <- c(0.39)     # Tlag
    
     theta10 <- c(-0.3)    # FDTOT (effect of the tacrolimus total dose on F)
-    theta11 <- c(-0.53)   # FFOR (effect of the formulation on F : Limustin)
-    theta12 <- c(-0.53)   # FFOR (effect of the formulation on F : Unknown formulation)
+    theta11 <- c(0.47)   # FFOR (Limustin)
     theta15 <- c(0.12)    # Additive error
     
     eta1 ~ c(0.36)         # Ka
@@ -90,7 +89,7 @@ f <- function() {
     ka <- TVKA * exp(eta1)
     
     FDTOT <- exp((theta10)*(DOSE/1000 - 2))   # Dose가 걸려있어서 3000ng 투여한다는 가정으로 수식 작성
-    FFOR <- 1 + ((theta11*FORM) + (theta12 *(1-FORM)))
+    FFOR <- theta11
     TVF <- 100 * FDTOT * FFOR
     BA <- TVF * exp(eta3)
     
