@@ -48,7 +48,7 @@ pk_color <- '#FF6666'
   
   # Inter-individually Variable parameters ----------------------------
   est_eta <-c('L/h'='cl',
-              'day'='TCL50',
+              'day'='tcl50',
               'L'='v'
   )
   
