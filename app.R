@@ -1140,9 +1140,12 @@ server <- function(input, output, session) {
       output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
         dosht <- rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
           hot_col(col = "Hour", default = 0) %>% 
+          hot_validate_numeric(col = "Hour", min = 0, max = 24) %>% 
           hot_col(col = "Min", default = 0) %>% 
+          hot_validate_numeric(col = "Min", min = 0, max = 59.999) %>% # between 0 ~ 60
           hot_cols(halign = "htCenter") %>% 
           hot_table(overflow = "visible", stretchH = "all")
+          
         
         if(length(mod_route)>1){ # if: route of administration type is more than one
           dosht <- dosht %>% hot_col(col = "Route", type = "dropdown", source = mod_route)
