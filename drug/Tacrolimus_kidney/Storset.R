@@ -1,10 +1,12 @@
+# Tacrolimus population pk model
+
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center, peri"
-des_cov <- "CYP3A5, WT, rGT, HCT" # Strict 
+des_cov <- "CYP3A5, FFM, Prednisolone, POD" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)","<br>",
@@ -14,10 +16,10 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5", "WT", "rGT", "HCT")
+mod_cov <- c("CYP3A5", "FFM", "Prednisolone", "POD")
 mod_lcov = c("CYP3A5") # covariates with dropdown list
 mod_lcov_value <- list(CYP3A5 = c('*1/*1'=1, '*1/*3'=1, '*3/*3'=0))
-mod_cov_abbr <- c("1 for mutation, otherwise no", "weight", "r-glutamyl transpeptidase", "Hematocrit")
+mod_cov_abbr <- c("mutation", "free fat mass", "Prednisolone dose", "POD")
 
 mod_route <- c("PO")
 
@@ -44,47 +46,54 @@ pk_color <- '#FF6666'
     NONE = 10)
   
   # Inter-individually Variable parameters ----------------------------
-  est_eta <-c('L/hr'='ka',
-              'L/hr'='cl',
-              'L'='v1')
+  est_eta <-c('L/h'='cl',
+              'L'='v1',
+              'L/h'='q',
+              'L/h'='ka')
   
   
-  sd_eta <- sqrt(c(0.2899, 0.1844, 0.0606, 1.3584)) # put sd^2 value in this vector
+  sd_eta <- sqrt(c(0.1484, 0.2558, 0.3342, 0.2813, 0.0515, 0.8919)) # put sd^2 value in this vector
   
   # Model file for estimation -----------------------------------------
   f <- function() {
     ini({
-      theta1 <- c(log(0.23))   # Ka
-      theta2 <- c(log(35))     # cl
-      theta3 <- c(log(12))     # V1
-      theta4 <- c(log(109))    # V2
-      theta5 <- c(log(68))     # Q
-      theta6 <- c(0.0431)      # Proportional error 
+      theta1 <- c(log(1.01))       # Ka
+      theta2 <- c(log(811))        # Cl
+      theta3 <- c(log(6290))       # Vc/F
+      theta4 <- c(log(32100))      # Vp/F
+      theta5 <- c(log(1200))       # Q
+      theta6 <- c(log(1))          # BA
+      theta7 <- c(0.0219)          # Proportional error 
       
-      eta1 ~ c(0.2899)          # Ka
-      eta2 ~ c(0.1844)          # CL_IIV
-      eta3 ~ c(0.0606)          # CL_IOV
-      eta4 ~ c(1.3584)          # V1
+      eta1 ~ c(0.1484)          # IIV_CL
+      eta2 ~ c(0.2558)          # IIV V1/F
+      eta3 ~ c(0.3342)          # IIV Q/F
+      eta4 ~ c(0.2813)          # IIV Fday2
+      eta5 ~ c(0.0515)          # IOV F
+      eta6 ~ c(0.8919)          # IOV Ka
     })
+    
     model({
-      ka <- exp(theta1 + eta1)
+      ka <- exp(theta1+eta6)
+      cl <- exp(theta2+eta1) * (FFM/60)**0.75 * (1.3 * CYP3A5 + (1-CYP3A5))
+      v1 <- exp(theta3+eta2)
+      v2 <- exp(theta4)
+      q <- exp(theta5+eta3)
       
-      tvcl <-  exp(theta2) * (1+(0.45*(CYP3A5) + 0.41*(1-CYP3A5))) * (WT/70)**0.75 * (rGT/13)**-0.21 * (HCT/0.34)**-0.59
-      cl <- tvcl * exp(eta2 + eta3)
-      v1 = exp(theta3+eta4) * (WT/70)
-      v2 = exp(theta4) * (WT/70)
-      q = exp(theta5) * (WT/70)**0.75
-
+      ke = cl/v1
       k12 = q/v1
       k21 = q/v2
-      ke = cl/v1
+      
+      BA <- exp(theta6 + eta4) * (1 - (0.67 * Prednisolone)/(Prednisolone+35)) * 0.82**(CYP3A5)
+      if (POD <= 0) {BA <- exp(theta6 + eta5) * (1 - (0.67 * Prednisolone)/(Prednisolone+35)) * 2.68 * 0.82**(CYP3A5)}
       
       d/dt(depot) = - ka * depot
-      d/dt(center) = ka * depot - k12 * center + k21 * depot - ke * center
-      d/dt(peri) = k12 * center - k21 * depot
-      alag(depot) = 0.47
+      d/dt(center) = ka * depot - k12 * center + k21 * peri - ke * center
+      d/dt(peri) = k12 * center - k21 * peri
+      f(depot) = BA
       
       cp = center / v1
-      cp ~ prop(theta6)
+      cp ~ prop(theta7)
     })
   }
+  
