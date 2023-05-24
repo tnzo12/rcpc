@@ -1313,7 +1313,8 @@ server <- function(input, output, session) {
               select(any_of(c("time","amt","cmt","rate","addl","ii","evid","ss"))), all=TRUE) %>% 
       merge(cov_data, all=TRUE) %>% # merge (outer join)
       tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
-      tidyr::fill("CRPZERO", .direction = "downup")
+      mutate(DOSE = amt) %>%
+      tidyr::fill(any_of(c("DOSE","CRPZERO")), .direction = "downup")
     # ev table will be transferred into 'eta' version or 'no-eta' version
     
     output$data_arr6 <- renderTable({ ev }) # debugging table, event table
