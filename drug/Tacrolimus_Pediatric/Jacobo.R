@@ -16,8 +16,8 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("CYP3A5","FORM")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
+mod_lcov = c("CYP3A5","FORM") # covariates with dropdown list
+mod_lcov_value <- list(CYP3A5 = c('1*3*'=1,'1*1*'=0), FORM = c('Limustin' =1, 'Unknown' =0))
 mod_cov_abbr <- c("Genotype of CYP3A5","Formulation of drug")
 
 mod_route <- c("Oral")
@@ -89,7 +89,7 @@ f <- function() {
     TVKA <- theta1 * ((1+ (theta13*FORM) + (theta14 * (1-FORM))))
     ka <- TVKA * exp(eta1)
     
-    FDTOT <- exp((theta10)*(AMT/1000 - 2))   # Dose가 걸려있어서 3000ng 투여한다는 가정으로 수식 작성
+    FDTOT <- exp((theta10)*(DOSE/1000 - 2))   # Dose가 걸려있어서 3000ng 투여한다는 가정으로 수식 작성
     FFOR <- 1 + ((theta11*FORM) + (theta12 *(1-FORM)))
     TVF <- 100 * FDTOT * FFOR
     BA <- TVF * exp(eta3)

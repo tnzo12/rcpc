@@ -1140,9 +1140,12 @@ server <- function(input, output, session) {
       output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
         dosht <- rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
           hot_col(col = "Hour", default = 0) %>% 
+          hot_validate_numeric(col = "Hour", min = 0, max = 24) %>% 
           hot_col(col = "Min", default = 0) %>% 
+          hot_validate_numeric(col = "Min", min = 0, max = 59.999) %>% # between 0 ~ 60
           hot_cols(halign = "htCenter") %>% 
           hot_table(overflow = "visible", stretchH = "all")
+          
         
         if(length(mod_route)>1){ # if: route of administration type is more than one
           dosht <- dosht %>% hot_col(col = "Route", type = "dropdown", source = mod_route)
@@ -1238,7 +1241,7 @@ server <- function(input, output, session) {
 
     output$obshis <- renderTable({obsh}) # debugging table, observation history
     
-    
+    # fitting data = dosing history + observation history
     f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
       arrange(Date, Hour, Min) %>% # Time ordering
       mutate(TIME = difftime(
@@ -1246,11 +1249,13 @@ server <- function(input, output, session) {
         paste0(first(Date)," ",first(Hour),":",first(Min)), # from
         units='hours' # unit: hours
       ),
-      ID = input$ID) # Patient info
+      ID = input$ID) %>% # Patient info
+      mutate(DOSE = AMT) %>%
+      tidyr::fill(DOSE, .direction = "downup") # dosed amount
     
     
     # Model designated function -----------------------------------------------
-    f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"]
+    f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"] # only applied to Jung et al.
     f_data <- f_data %>% subset(select= -c(Dur, Type))
     # put any logical equations about covariates in models
     # -------------------------------------------------------------------------
@@ -1308,7 +1313,8 @@ server <- function(input, output, session) {
               select(any_of(c("time","amt","cmt","rate","addl","ii","evid","ss"))), all=TRUE) %>% 
       merge(cov_data, all=TRUE) %>% # merge (outer join)
       tidyr::fill(any_of(mod_cov), .direction = "downup") %>% # to fill NAs in the event table
-      tidyr::fill("CRPZERO", .direction = "downup")
+      mutate(DOSE = amt) %>%
+      tidyr::fill(any_of(c("DOSE","CRPZERO")), .direction = "downup")
     # ev table will be transferred into 'eta' version or 'no-eta' version
     
     output$data_arr6 <- renderTable({ ev }) # debugging table, event table
