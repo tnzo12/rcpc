@@ -16,7 +16,7 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("POD", "TBIL", "SCr", "HW", "BW")
-mod_cov_abbr <- c("Postoperative days", "total bilirubin", "serum creatinine", "grafted hepatic weight", "bodyweight")
+mod_cov_abbr <- c("Postoperative days", "Total bilirubin", "Serum creatinine", "Grafted hepatic weight", "Bodyweight(kg)")
 
 mod_route <- c("PO")
 

@@ -173,7 +173,7 @@ css_rt <- "
   color: hsl(230, 45%, 30%);
 }
 
-.drug-Tacrolimus {
+.drug-Tacrolimus_Pediatric {
   background: hsl(116, 60%, 90%);
   color: hsl(116, 30%, 25%);
 }
@@ -1111,7 +1111,10 @@ server <- function(input, output, session) {
                               Val=as.numeric(NA),
                               stringsAsFactors = FALSE) %>% 
       dplyr::bind_cols( # add columns for covariates
-        matrix(ncol=length(mod_cov)) %>% data.frame() %>% mutate_all(as.numeric) %>% setNames(mod_cov)
+        matrix(ncol=length(mod_cov)) %>%
+          data.frame() %>%
+          mutate_all(as.character) %>% 
+          setNames(mod_cov)
       )
     
     values$sim_doseh_ini <- data.frame(Date=Sys.Date()+1, # add one day from history
@@ -1223,8 +1226,16 @@ server <- function(input, output, session) {
              EVID = 0,
              CMT = mod_comp[Type],
              condi = 'est') %>% # labeling: estimation dataset
+      mutate_at(vars(mod_cov[!mod_cov %in% mod_lcov]), as.numeric) %>% # only for covariates which is not included in listed covariate
       rename(DV = Val)
-    
+      
+      if(!is.null(mod_lcov)){
+        # if listed covariate is not null, numerize
+        for (i in mod_lcov){
+          obsh[[i]] <- mod_lcov_value[[i]][ obsh[[i]] ]
+        }
+      }
+
     output$obshis <- renderTable({obsh}) # debugging table, observation history
     
     

@@ -2,13 +2,13 @@
 
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus model for adult patients with liver transplantation"
-des_notes <- c("- If both donor and recipient are carrier: YY",
+des_notes <- c("- If both donor and recipient are *1 carrier: YY",
                "<br>",
-               "- If either one of donor or recipient is carrier: YN",
+               "- If either one of donor or recipient is *1 carrier: YN",
                "<br>",
-               "- If both donor and recipient are not carrier: NN")
-des_comp <- "depot, cent, per"
-des_cov <- "CYP3A5" # Strict 
+               "- If both donor and recipient are not *1 carrier: NN")
+des_comp <- "depot, trans1, trans2, trans3, cent, per"
+des_cov <- "DCYP3A5, RCYP3A5" # Strict 
 
 des_params <- c("- Cl: clearance (tacrolimus)","<br>",
                 "- V: Volume of distritubtion(tacrolimus)","<br>")
@@ -16,8 +16,10 @@ des_params <- c("- Cl: clearance (tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5")
-mod_cov_abbr <- c("Donor and Recipient's CYP3A5*1 Genotype" )
+mod_cov <- c("DCYP3A5", "RCYP3A5")
+mod_lcov_value <- list(DCYP3A5= c('Yes'=1,'No'=0))
+mod_lcov_value <- list(RCYP3A5= c('Yes'=1,'No'=0))
+mod_cov_abbr <- c("Donor's CYP3A5*1 Genotype(yes/no)", "Recipient's CYP3A5*1 Genotype(yes/no)" )
 
 mod_route <- c("PO")
 
@@ -78,9 +80,11 @@ pk_color <- '#FF6666'
     
     model({
      
-      if (CYP3A5==YY) {tcl <- theta1
-      } else if(CYP3A5==YN){tcl <- theta2
+      if (DCYP3A5==0 & RCYP3A5==0) {tcl <- theta1
+      } else if(DCYP3A5==1 & RCYP3A5==0){tcl <- theta2
+      } else if(DCYP3A5==0 & RCYP3A5==1){tcl <- theta2
       } else {tcl <- theta3}
+      
       cl <- tcl * exp(eta1)
       
       vc <- theta4 * exp(eta2)
@@ -92,9 +96,13 @@ pk_color <- '#FF6666'
       ke = cl/vc
       
       d/dt(depot) = - ka * depot
-      d/dt(cent) = ka * depot - ke * cent - q * cent + q * per
-      d/dt(per) = q * cent - q * per
       f(depot) = 0.23    # fixed
+      d/dt(trans1) = ka * depot - ka * trans1
+      d/dt(trans2) = ka * trans1 - ka * trans2
+      d/dt(trans3) = ka * trans2 - ka * trans3
+      d/dt(cent) = ka * trans3 - ke * cent - q * cent + q * per
+      d/dt(per) = q * cent - q * per
+      
       
       
       cp = cent / vc
@@ -102,4 +110,5 @@ pk_color <- '#FF6666'
       
     })
   }
+  
   

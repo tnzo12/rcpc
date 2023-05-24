@@ -78,13 +78,13 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.48   #fixed
       
-      tclmax <- theta1 * (ALB / 38)^theta6
+      tclmax <- theta1 * (ALB / 38)**theta6
       clmax <- tclmax * exp(eta1)
       
-      ttcl50 <- theta3 * (AST / 38)^theta5
+      ttcl50 <- theta3 * (AST / 38)**theta5
       tcl50 <- ttcl50 * exp(eta2)
       
-      cl <- (clmax * POD^theta4) / (tcl50^theta4 + POD^theta4)
+      cl <- (clmax * POD**theta4) / (tcl50**theta4 + POD**theta4)
       
       tv <- theta2
       v <- tv * exp(eta3)

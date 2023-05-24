@@ -6,7 +6,7 @@ des_notes <- c("-Note1",
                "<br>",
                "- Note 2 ")
 des_comp <- "depot, center"
-des_cov <- "POD, L, TBIL, INR, GRWR, WT" # Strict 
+des_cov <- "POD, TBIL, INR, GRWR, BW" # Strict 
 
 des_params <- c("- Cl: clearance (tacrolimus)","<br>",
                 "- V: Volume of distritubtion(tacrolimus)","<br>")
@@ -14,8 +14,8 @@ des_params <- c("- Cl: clearance (tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("POD", "L", "TBIL", "INR", "GRWR", "WT")
-mod_cov_abbr <- c("Postoperative days", "Late postoperative days", "total bilirubin(mg/dL)", "International Normalized Ratio", "graft to recipient weight ratio(%)", "weight(kg)")
+mod_cov <- c("POD", "TBIL", "INR", "GRWR", "BW")
+mod_cov_abbr <- c("Postoperative days", "Total bilirubin(mg/dL)", "International Normalized Ratio", "Graft to recipient weight ratio(%)", "Bodyweight(kg)")
 
 mod_route <- c("PO")
 
@@ -76,11 +76,13 @@ pk_color <- '#FF6666'
     model({
       
       if(POD>35){L=1} else {L=0} #late operative days (theta3)
-      if(POD<=3){theta5 = theta5} else {theta5 <- 0} #early operative days (theta5)
-      if(TBIL<=1.2){TBIL <- 1} else {TBIL <- TBIL} #theta4
-      if(INR>1.4){theta6 = theta6} else {theta6 <- 0} #theta 6
-      if(GRWR<=1.25){theta7 = theta7} else {theta7 <- 0} #theta 7
-      tcl <- (theta1 + (theta3/POD)*L) * TBIL^theta4 * theta5 * theta6 * theta7 * WT
+      if(POD<=3){PODF<-1} else {PODF<-0} #early operative days (theta5)
+      if(TBIL<=1.2){TBILF<-0} else {TBILF<-1} #theta4
+      if(INR>1.4){INRF<-1} else {INRF<-0} #theta 6
+      if(GRWR<=1.25){GRWRF<-1} else {GRWRF<-0} #theta 7
+      
+      
+      tcl <- (theta1 + (theta3/POD)*L) * ((TBIL**TBILF)**theta4) * (theta5**PODF) * (theta6**INRF) * (theta7**GRWRF) * BW
       cl <- tcl * exp(eta1)
       
       tv <- theta2
