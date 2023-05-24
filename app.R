@@ -1342,7 +1342,7 @@ server <- function(input, output, session) {
         x = list(seq(from=time, to=(time + addl*ii), by = ii))
       ) %>% 
       unlist() %>% unname()
-    #hist_dose <- f_data # only dosing history
+    
     hist_time <- f_data[1,"Hour"] + f_data[1,"Min"]/60
     
     
@@ -1352,8 +1352,7 @@ server <- function(input, output, session) {
     # simulation without IIV: list[[1]] ------------------------
     sim_res_noiiv <- rxSolve(object = fit.s,
                              events = ev_noiiv,
-                             nSub = 1) %>% 
-      #mutate(date = f_data[1,"Date"] + (hist_time + time) %/% 24) %>%
+                             nSub = 1) %>%
       data.table() %>% # date labeling, data.table
       .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, # if
                                 NA, # then
