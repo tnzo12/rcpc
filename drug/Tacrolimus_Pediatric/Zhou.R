@@ -1,19 +1,11 @@
 # Tacrolimus population pk model
-# CYP3A5 = 1 if CYP3A5 *1/*3 
-# CYP3A5 = 0 if CYP3A5*3/*3
-
-
-
-
-
-
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus Oral centeral model for Pediatric kidney transplant recipients"
+des_intro <- " As there are no pharmacokinetic data available in pediatric kidney transplant recipients, the aims of this study were to develop a population pharmacokinetic model of tacrolimusPR in pediatric and adolescent kidney transplant recipients and to identify covariates that have a significant impacts on tacrolimusPR pharmacokinetics, including CYP3A5 polymorphism."
 des_notes <- c("Mycophenolate mofetil, MMF and mycophenolic acid, MPA doses were adjusted to maintain AUC between 30 and 60 h*mg/L",
                "<br>",
                "A limited number of blood samples were obtained before, 1, 2, 3, 6, 12, 16 and 24 hours after drug intake")
-des_comp <- c("central", "depot")
+des_comp <- c("central",",","depot")
 des_cov <- c("Body weight","Genotype of CYP3A5") # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",

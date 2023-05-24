@@ -1,10 +1,12 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus Oral model for paediatric renal transplant recipients"
-des_notes <- c("blood samples were collected from 46 children treated with tacrolimus over the first 6 weeks after renal transplantation.",
+des_intro <- "A total of 722 blood samples were collected from 46 children treated with tacrolimus over the first 6 weeks after renal transplantation. patients aged younger than 18 years, who received a 476 L. M. Andrews et al.kidney from an ABO compatible living or a deceased donor, and were treated with tacrolimus as part of their initial immune suppressive regimen. All clinical values were collected from 24 h before transplantation until 6 weeks post-transplantation. All children received an initial tacrolimus dose of 0.3 mg/kg/day divided into two doses every 12 h"
+des_notes <- c("Living donor compared with a deceased donor.",
                "<br>",
-               " All clinical values were collected from 24 h before transplantation until 6 weeks post-transplantation")
+               "All patients were treated according to the TWIST protocol with basiliximab, tacrolimus, mycophenolic acid, and a 5-day course of glucocorticoids",
+               "<br>",
+               "Higher tacrolimus CL in kidneys from a deceased donor is probably caused by other unknown parameters that could not be tested as covariates and therefore cannot be corrected for.")
 des_comp <- c("depot","central", "peripheral")
 des_cov <- c("CYP3A5","WT","eGFR","Donor Living","HCT") # Limustin : 1 / unknown formula : 0 
 
