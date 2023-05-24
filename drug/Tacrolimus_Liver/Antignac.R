@@ -70,7 +70,7 @@ pk_color <- '#FF6666'
       
       # ETAs
       eta1 + eta3 ~ c(0.174,
-                      0.55, 0.2152)       # IIV CL/Fmax
+                      0.1064, 0.2152)       # IIV CL/Fmax
       eta2 ~ c(0.1046)                    # IIV TCL50
       
       
