@@ -175,7 +175,17 @@ css_rt <- "
 
 .drug-Tacrolimus_Pediatric {
   background: hsl(116, 60%, 90%);
-  color: hsl(116, 30%, 25%);
+  color: hsl(116, 30%, 30%);
+}
+
+.drug-Tacrolimus_Liver {
+  background: hsl(120, 33%, 85%);
+  color: hsl(120, 33%, 30%);
+}
+
+.drug-Tacrolimus_Kidney {
+  background: hsl(60, 50%, 80%);
+  color: hsl(60, 50%, 30%);
 }
 "
 
