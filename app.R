@@ -1251,7 +1251,7 @@ server <- function(input, output, session) {
       ),
       ID = input$ID) %>% # Patient info
       mutate(DOSE = AMT) %>%
-      tidyr::fill(DOSE, .direction = "down") # dosed amount
+      tidyr::fill(DOSE, .direction = "downup") # dosed amount
     
     
     # Model designated function -----------------------------------------------
