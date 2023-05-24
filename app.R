@@ -1342,8 +1342,8 @@ server <- function(input, output, session) {
         x = list(seq(from=time, to=(time + addl*ii), by = ii))
       ) %>% 
       unlist() %>% unname()
-    hist_dose <- f_data %>% filter(is.na(DV)) # only dosing history
-    hist_time <- hist_dose[1,"Hour"] + hist_dose[1,"Min"]/60
+    #hist_dose <- f_data # only dosing history
+    hist_time <- f_data[1,"Hour"] + f_data[1,"Min"]/60
     
     
     
@@ -1353,9 +1353,11 @@ server <- function(input, output, session) {
     sim_res_noiiv <- rxSolve(object = fit.s,
                              events = ev_noiiv,
                              nSub = 1) %>% 
-      mutate(date = hist_dose[1,"Date"] + (hist_time + time) %/% 24) %>%
+      #mutate(date = f_data[1,"Date"] + (hist_time + time) %/% 24) %>%
       data.table() %>% # date labeling, data.table
-      .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, NA, date)] %>% 
+      .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, # if
+                                NA, # then
+                                f_data[1,"Date"] + (hist_time + time) %/% 24)] %>% # else
       .[,date := format(date, "%m/%d")] %>% 
       .[time %in% dosep, dosed := 1] %>% # check where dose was given
       .[is.na(dosed), dosed := 0] %>%
