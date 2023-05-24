@@ -1238,7 +1238,7 @@ server <- function(input, output, session) {
 
     output$obshis <- renderTable({obsh}) # debugging table, observation history
     
-    
+    # fitting data = dosing history + observation history
     f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
       arrange(Date, Hour, Min) %>% # Time ordering
       mutate(TIME = difftime(
@@ -1246,11 +1246,13 @@ server <- function(input, output, session) {
         paste0(first(Date)," ",first(Hour),":",first(Min)), # from
         units='hours' # unit: hours
       ),
-      ID = input$ID) # Patient info
+      ID = input$ID) %>% # Patient info
+      mutate(DOSE = AMT) %>%
+      tidyr::fill(DOSE, .direction = "down") # dosed amount
     
     
     # Model designated function -----------------------------------------------
-    f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"]
+    f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"] # only applied to Jung et al.
     f_data <- f_data %>% subset(select= -c(Dur, Type))
     # put any logical equations about covariates in models
     # -------------------------------------------------------------------------
