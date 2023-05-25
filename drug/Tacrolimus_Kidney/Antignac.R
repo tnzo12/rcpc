@@ -1,10 +1,14 @@
 # Pyrazinamide population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po and iv model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po and iv model for adult kidney transplant recipients", 
+               "<br>", 
+               "Data were obtained from 83 patients, POD ranging from 1 to 158(mean=38)", 
+               "<br>",
+               "All study participants received triple immunosuppressive drug regimen")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of post operation days and corticosteroid dos is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
 des_cov <- "POD, CS" # Strict 
 
@@ -18,7 +22,7 @@ mod_obs_abbr <- c("Serum drug concentration")
 mod_cov <- c("POD", "CS")
 mod_lcov = NULL # covariates with dropdown list
 mod_lcov_value <- NULL
-mod_cov_abbr <- c("Post operation days", "Amount of concominnant prednisolone")
+mod_cov_abbr <- c("Post operation days", "Dose of concominnant prednisolone(mg)")
 
 mod_route <- c("IV", "PO")
 
