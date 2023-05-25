@@ -1,12 +1,12 @@
 # Pyrazinamide population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients", "<br>", "This model was built based on 70 patients who were given oral tacrolimus with methylprednisoloine and mycophenolic acid")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of HCT, CYP3A5, ABCB1 is recommend to reflect physiological changes in clearance")
 des_comp <- "depot, center, peri"
-des_cov <- "HCT, CYP3A5_33, CYP3A5_13, CYP3A5_11, ABCB1" # Strict 
+des_cov <- "HCT, CYP3A5, ABCB1" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -15,10 +15,11 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("HCT", "CYP3A5_33", "CYP3A5_13","CYP3A5_11", "ABCB1")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("hematocrit", "1 for mutation, otherwise no", "1 for mutation, otherwise no","1 for mutation, otherwise no", "1 for mutation, otherwise no")
+mod_cov <- c("HCT", "CYP3A5", "ABCB1")
+mod_lcov <- c("CYP3A5", "ABCB1")
+mod_lcov_value <- list(CYP3A5 = c('*1/*1'=1, '*1/*3'=1, '*3/*3'=0),
+                       ABCB1 = c('genetic polymorphism'=1, 'else'=0))
+mod_cov_abbr <- c("Haematocrit level", "*1 stands for CYP3A5 intron 36986 G>A status", "Select ABCB1 polymorphism in case of : <br> ABCB1 exon 12 1236 C>T status, <br> ABCB1 exon 21 2677 G>T/A status, <br> ABCB1 exon 26 3435 C>T status")
 
 mod_route <- c("PO")
 
@@ -73,7 +74,7 @@ pk_color <- '#FF6666'
     model({
       
       ka <- exp(theta1 + eta1)
-      cl <- (theta2 + (20.6*HCT/21) + 15.4* (CYP3A5_11+CYP3A5_13) * (1-CYP3A5_33) + 7.6*ABCB1) * exp(eta2)
+      cl <- (theta2 + (20.6*HCT/21) + 15.4**CYP3A5 + 7.6**ABCB1) * exp(eta2)
       q <- 58.2
       v1 <- exp(theta3 + eta3)
       v2 <- exp(theta4 + eta4)
