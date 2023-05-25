@@ -1,12 +1,16 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients.", 
+               "<br>", 
+               "Data were obtained from 102 (74 male and 28 female) patients, age ranging from 18 to 74", 
+               "<br>",
+               "All study participants received triple immunosuppressive drug regimen")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of age, diabetes, MRP2 and CYP3A5 polymorphism is recommend to reflect physiological changes in clearance")
 des_comp <- "depot, center, peri"
-des_cov <- "H22, H21, H11, CYP3A5_33, CYP3A5_13, CYP3A5_11, AGE, diabetes" # Strict 
+des_cov <- "MRP2, CYP3A5, AGE, diabetes" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)","<br>",
@@ -16,10 +20,12 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("H22", "H21", "H11", "CYP3A5_33", "CYP3A5_13", "CYP3A5_11", "AGE", "diabetes")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("1 for H2/H2, otherwise 0", "1 for H2/H1, otherwise 0", "1 for H1/H1, otherwise 0", "1 for mutation, otherwise no", "1 for mutation, otherwise no", "1 for mutation, otherwise no", "Age", "1 for diabete patients, otherwise 0")
+mod_cov <- c("MRP2", "CYP3A5", "AGE", "diabetes")
+mod_lcov = c("MRP2", "CYP3A5", "diabetes") # covariates with dropdown list
+mod_lcov_value <- list(MRP2=c('H2/H2'=0, 'H1/H2'=1, 'H1/H1'=1),
+                       CYP3A5=c('*3/*3'=0, '*1/*3'=1, '*1/*1'=1),
+                       diabetes=c('yes'=1, 'no'=0))
+mod_cov_abbr <- c("H1 is wild type and H2 is 1249G>A polymorphism", "*3 indicates 6986A>G(rs776746)", "Whether patient has diabetes")
 
 mod_route <- c("PO")
 
@@ -70,7 +76,7 @@ pk_color <- '#FF6666'
     model({
       ka <- 0.544
       q <- 70.7
-      cl <- exp(theta1 + eta1) * (AGE/50)**-0.50 * (2.03 * (CYP3A5_33 + CYP3A5_13) + 1 * CYP3A5_11) * (1.4 * (H22+H21) + 1 * H11) 
+      cl <- exp(theta1 + eta1) * (AGE/50)**-0.78 * 2.03**CYP3A5 * 1.4**MRP2
       v1 <- exp(theta2 + eta2)
       v2 <- exp(theta3)
       ke = cl/v1
@@ -80,7 +86,7 @@ pk_color <- '#FF6666'
       d/dt(depot) = - ka * depot
       d/dt(center) = ka * depot - k12 * center + k21 * peri - ke * center
       d/dt(peri) = k12 * center - k21 * peri
-      alag(depot) = exp(theta4) * (2.06**diabetes)
+      alag(depot) = exp(theta4) * (2.6**diabetes)
       
       cp = center / v1
       cp ~ prop(theta5)
