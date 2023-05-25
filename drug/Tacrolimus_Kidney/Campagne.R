@@ -1,12 +1,16 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients.", 
+               "<br>", 
+               "Data were obtained from 67 patients, 35 blacks and 32 whites.", 
+               "<br>",
+               "All study participants received tacrolimus twice daily with mycophenolic acid, for greater or equal than 6 months.")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center, peri"
-des_cov <- "CYP3A5_33, CYP3A5_66, CYP3A5_77, CYP3A5_36, CYP3A5_37, CYP3A5_67, CYP3A5_13, CYP3A5_16,  CYP3A5_17, CYP3A5_11, WT" # Strict 
+des_cov <- "CYP3A5, WT" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)","<br>",
@@ -16,10 +20,13 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5_33", "CYP3A5_66", "CYP3A5_77", "CYP3A5_36", "CYP3A5_37", "CYP3A5_67","CYP3A5_13","CYP3A5_16","CYP3A5_17","CYP3A5_11", "WT")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("1 for mutation, otherwise no", "1 for mutation, otherwise no", "1 for mutation, otherwise no", "1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","Weight")
+mod_cov <- c("CYP3A5", "WT")
+mod_lcov <- c("CYP3A5")
+mod_lcov_value <- list(CYP3A5 = c('*1/*1'=2.25, '*1/*3'=1.45, '*1/*6'=1.45,'*1/*7'=1.45, '*3/*3'=1.45, '*6/*6'=1, '*7/*7'=1, '*3/*6'=1, '*3/*7'=1, '*6/*7'=1))
+mod_cov_abbr <- c("CYP3A5*1 indicates wild type.
+                  <br>
+                  CYP3A5*3(rs776746), *6(rs10264272), *7(rs41303343) indicate loss of protein function variant", 
+                  "Patient's weight(kg)")
 
 mod_route <- c("PO")
 
@@ -73,7 +80,7 @@ pk_color <- '#FF6666'
     
     model({
 
-      cl <- exp(theta1 + eta1) * (1.45**(CYP3A5_13 * CYP3A5_16 * CYP3A5_17) * (2.25**(CYP3A5_11)) * (1**(CYP3A5_33 *CYP3A5_66*CYP3A5_77*CYP3A5_36*CYP3A5_37*CYP3A5_67)))
+      cl <- exp(theta1 + eta1) * CYP3A5
       v1 <- exp(theta2 + eta2) * (WT/85.9)
       v2 <- exp(theta3)
       ke = cl/v1
