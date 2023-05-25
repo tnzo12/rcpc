@@ -90,6 +90,8 @@ pk_color <- '#FF6666'
       
       vc <- theta4 * exp(eta2)
       
+      vp <- theta5
+      
       ka <- theta7 * exp(eta3)
       
       q <- theta6

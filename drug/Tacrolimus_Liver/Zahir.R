@@ -15,8 +15,11 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("HCT", "ALB", "DIL", "FLU")
-mod_lcov <- NULL
-mod_lcov_value <- list(DIL = c('Yes'=1,'No'=0, FLU = c('Yes'=1,'No'=0)))
+mod_lcov <- c("DIL","FLU")
+mod_lcov_value <- list(
+  DIL = c('Yes'=1,'No'=0), 
+  FLU = c('Yes'=1,'No'=0)
+  )
 mod_cov_abbr <- c("Hematocrit(%)", "Albumin(g/dL)", "Diltiazem coadministration", "Fluconazole coadministration")
 
 mod_route <- c("PO")
