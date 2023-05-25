@@ -1,24 +1,25 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients", "<br>", "Data were obtained from 161 patients treated at a single center, from 0 to 95 POD (median value:9 days)")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
-des_cov <- "CYP3A5_11, CYP3A5_1g, CYP3A5_gg, CYP3A4_33, CYP3A4_13, CYP3A4_11, HCT, POD, WT" # Strict 
+des_cov <- "CYP3A5, CYP3A4, HCT, POD, WT" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
 
 # observation value -------------------------------------------------
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
-mod_obs_abbr <- c("Serum drug concentration")
+mod_obs_abbr <- c("Serum drug concentration(ng/ml)")
 
-mod_cov <- c("CYP3A4_11","CYP3A4_1g","CYP3A4_gg", "CYP3A5_33","CYP3A5_13","CYP3A5_11","HCT", "POD", "WT")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","hematocrit","post operation days", "weight")
+mod_cov <- c("CYP3A4", "CYP3A5","HCT", "POD", "WT")
+mod_lcov = c("CYP3A4", "CYP3A5") # covariates with dropdown list
+mod_lcov_value <- list(CYP3A4=c('*1G/*1G'=0, '*1/*1G'=0, '*1/*1'=1),
+                       CYP3A5=c('*3/*3'=0, '*1/*3'=1, '*1/*1'=1))
+mod_cov_abbr <- c("CYP3A4*1G(also called CYP3A4*18B) indicates G2030A polymorphism","CYP3A5*3 indicates A6986G polymorphism", "hematocrit(%)","post operation days", "weight(kg)")
 
 mod_route <- c("PO")
 
@@ -66,7 +67,7 @@ pk_color <- '#FF6666'
     model({
       ka <- 3.09
 
-      cl <- exp(theta1 + eta1) * (HCT/27.0)**-0.45 * (1.21*(CYP3A5_11+CYP3A5_13)*(CYP3A4_1g+CYP3A4_gg) + 0.982*(CYP3A5_11+CYP3A5_13)*CYP3A4_11 + 0.77 * CYP3A5_33*(CYP3A4_1g+CYP3A4_gg) + 0.577 * CYP3A5_33*CYP3A4_11)
+      cl <- exp(theta1 + eta1) * (HCT/27.0)**-0.45 * (1.21* (CYP3A5*(1-CYP3A4)) + 0.982* (CYP3A5*CYP3A4) + 0.77* (1-CYP3A5)*(1-CYP3A4) + 0.577 * ((1-CYP3A5)*CYP3A4))
       v <- exp(theta2 + eta2)
       ke = cl/v
       
