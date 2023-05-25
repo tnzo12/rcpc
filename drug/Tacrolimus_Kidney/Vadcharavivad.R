@@ -1,10 +1,14 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients.", 
+               "<br>", 
+               "Data were obtained from 96 patients, DOT ranging from 6 to 3983", 
+               "<br>",
+               "All study participants received triple immunosuppressive drug regimen")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of HB and DOT is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
 des_cov <- "HB, DOT" # Strict 
 
@@ -18,7 +22,7 @@ mod_obs_abbr <- c("Serum drug concentration")
 mod_cov <- c("HB", "DOT")
 mod_lcov = NULL # covariates with dropdown list
 mod_lcov_value <- NULL
-mod_cov_abbr <- c("Hemoglobin", "Days of therapy")
+mod_cov_abbr <- c("Hemoglobin(g/dL)", "Days of tacrolimus therapy")
 
 mod_route <- c("PO")
 
