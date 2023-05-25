@@ -1,12 +1,12 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <- c("Tacrolimus po model for adult kidney transplant recipients", "<br>", "This model was built based on de novo Korean patients", "<br>", " Follow-up period lasted for 400 days after transplantation.")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
-des_cov <- "CYP3A5_33, CYP3A5_13, CYP3A5_11, HCT, POD, WT" # Strict 
+des_cov <- "CYP3A5, HCT, POD, WT" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -15,10 +15,10 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5_33", "CYP3A5_13","CYP3A5_11","HCT", "POD", "WT")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("1 for mutation, otherwise no","1 for mutation, otherwise no","1 for mutation, otherwise no","hematocrit", "post operational days", "weight")
+mod_cov <- c("CYP3A5","HCT", "POD", "WT")
+mod_lcov = c("CYP3A5")
+mod_lcov_value <- list(CYP3A5 = c('*1/*1'=0.2225, '*1/*3'=0.17, '*3/*3'=0.0525))
+mod_cov_abbr <- c("CYP3A5*3 allele indicates genetic variation in intron 3 (A6986G)", "hematocrit(%)", "post operational days", "weight(kg)")
 
 mod_route <- c("PO")
 
@@ -65,8 +65,8 @@ pk_color <- '#FF6666'
       ka <- 4.5
       if(HCT <=33) {HCT2 <- 0.297} else {HCT2 <- 0.117}
 
-      cl <- exp(theta1 + eta1) * exp(0.225*CYP3A5_11+0.17*CYP3A5_13+0.0525*CYP3A5_33) * exp(HCT2) * (POD**-0.00762)
-      v <- exp(theta2 + eta2) * exp(0.355*WT/59.025)
+      cl <- exp(theta1 + eta1) * exp(CYP3A5) * exp(HCT2) * (POD**-0.00762)
+      v <- exp(theta2 + eta2) * exp(0.355 * WT / 59.025)
       ke = cl/v
       
       d/dt(depot) = - ka * depot
