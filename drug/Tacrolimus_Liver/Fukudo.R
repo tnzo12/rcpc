@@ -77,7 +77,7 @@ pk_color <- '#FF6666'
     
     model({
       
-      if(TBL>2.5){HF <- 1} else {HF <- 0 }
+      if(TBIL>2.5){HF <- 1} else {HF <- 0 }
       if(SCr>1){RF <- 1} else {RF <- 0 } 
       tcl <- (theta1 + theta5 * POD) * theta4^HF *theta6^RF * HW/600
       cl <- tcl * exp(eta2)

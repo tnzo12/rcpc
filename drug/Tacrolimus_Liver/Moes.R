@@ -2,11 +2,9 @@
 
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus model for adult patients with liver transplantation"
-des_notes <- c("- If both donor and recipient are *1 carrier: YY",
+des_notes <- c("- Clearance depends on CYP3A5 genotype of donors and recipients",
                "<br>",
-               "- If either one of donor or recipient is *1 carrier: YN",
-               "<br>",
-               "- If both donor and recipient are not *1 carrier: NN")
+               "- Note2")
 des_comp <- "depot, trans1, trans2, trans3, cent, per"
 des_cov <- "DCYP3A5, RCYP3A5" # Strict 
 
@@ -17,9 +15,12 @@ mod_obs <- c("SDC") # {**should be matched with compartment order in model equat
 mod_obs_abbr <- c("Serum drug concentration")
 
 mod_cov <- c("DCYP3A5", "RCYP3A5")
-mod_lcov <- NULL
-mod_lcov_value <- list(DCYP3A5= c('Yes'=1,'No'=0, RCYP3A5= c('Yes'=1,'No'=0)))
-mod_cov_abbr <- c("Donor's CYP3A5*1 Genotype(yes/no)", "Recipient's CYP3A5*1 Genotype(yes/no)" )
+mod_lcov <- c("DCYP3A5", "RCYP3A5")
+mod_lcov_value <- list(
+  DCYP3A5= c('*1 carrier'=1,'*1 non-carrier'=0),
+  RCYP3A5= c('*1 carrier'=1,'*1 non-carrier'=0)
+)
+mod_cov_abbr <- c("Donor's CYP3A5*1 Genotype", "Recipient's CYP3A5*1 Genotype" )
 
 mod_route <- c("PO")
 
@@ -80,10 +81,10 @@ pk_color <- '#FF6666'
     
     model({
      
-      if (DCYP3A5==0 & RCYP3A5==0) {tcl <- theta1
-      } else if(DCYP3A5==1 & RCYP3A5==0){tcl <- theta2
-      } else if(DCYP3A5==0 & RCYP3A5==1){tcl <- theta2
-      } else {tcl <- theta3}
+      if (DCYP3A5==0 & RCYP3A5==0) {tcl <- theta1}
+      if (DCYP3A5==1 & RCYP3A5==0) {tcl <- theta2}
+      if (DCYP3A5==0 & RCYP3A5==1) {tcl <- theta2}
+      if (DCYP3A5==1 & RCYP3A5==1) {tcl <- theta3}
       
       cl <- tcl * exp(eta1)
       

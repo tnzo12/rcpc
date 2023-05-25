@@ -2,11 +2,11 @@
 
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus model for adult patients with liver transplantation"
-des_notes <- c("-Genotype testing on CYP3A5 enzyme need to be done for this model",
+des_notes <- c("-Total bilirubin conc. was only covariate for this model",
                "<br>",
-               "-Donor or Recipient's CYP3A5 need to be selected")
+               "- Model name Li includes CYP3A5 as covariate ")
 des_comp <- "depot, center"
-des_cov <- "TBIL, CYPD, CYPR" # Strict 
+des_cov <- "TBIL" # Strict 
 
 des_params <- c("- Cl: clearance (tacrolimus)","<br>",
                 "- V: Volume of distritubtion(tacrolimus)","<br>")
@@ -14,10 +14,10 @@ des_params <- c("- Cl: clearance (tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("TBIL", "CYPR", "CYPD")
+mod_cov <- c("TBIL")
 mod_lcov <- NULL
-mod_lcov_value <- list(CYPR = c('*3*3'=1,'others'=0, CYPD = c('*3*3'=1,'others'=0)))
-mod_cov_abbr <- c("Total bilirubin(umol/L)", "Recipient CYP3A5", "Donor CYP3A5" )
+mod_lcov_value <- NULL
+mod_cov_abbr <- c("Total bilirubin(umol/L)" )
 
 mod_route <- c("PO")
 
@@ -51,7 +51,7 @@ pk_color <- '#FF6666'
               'L'='v'
   )
   
-  sd_eta <- sqrt(c(0.0929, 0.2643)) # put sd^2 value in this vector
+  sd_eta <- sqrt(c(0.1526, 0.3217)) # put sd^2 value in this vector
   
   
   
@@ -59,30 +59,25 @@ pk_color <- '#FF6666'
   f <- function(){
     ini({
       # thetas
-      theta1 <- c(15.9)            # CL/F (L/h)
-      theta2 <- c(620)             # Vc/F (L)
-      theta3 <- c(1.88)            # TBIL
-      theta4 <- c(7.65)            # CYPD
-      theta5 <- c(7)               # CYPR
-      theta6 <- c(2.81)            # add error
+      theta1 <- c(22.1)            # CL/F (L/h)
+      theta2 <- c(653)             # Vc/F (L)
+      theta3 <- c(2.17)            # TBIL
+      theta4 <- c(2.83)            # add error
       
       
       # ETAs
-      eta1 ~ c(0.0929)       # IIV CL
-      eta2 ~ c(0.2643)       # IIV V
-      
-      
+      eta1 ~ c(0.1526)       # IIV CL
+      eta2 ~ c(0.3217)       # IIV V
     })
     
     model({
       ka <- 4.48    # fixed
-      
       if(TBIL<=25.7){TBIL <- 0
       } else if(TBIL<51.4){TBIL <- 1
       } else if(TBIL<77.1){TBIL <- 2
       } else if(TBIL<128.5){TBIL <- 3
       } else {TBIL <-4}
-      tcl <- theta1 - theta3 * TBIL + theta4 * (1-CYPD) + theta5 * (1-CYPR)
+      tcl <- theta1 - theta3 * TBIL 
       cl <- tcl * exp(eta1)
       
       tv <- theta2
@@ -94,7 +89,7 @@ pk_color <- '#FF6666'
       d/dt(cent) = ka * depot - ke * cent 
       
       cp = cent / v
-      cp ~ add(theta6)
+      cp ~ add(theta4)
       
     })
   }
