@@ -3,9 +3,9 @@
 # PK model description ----------------------------------------------
 des_intro <- c("Tacrolimus po model for adult kidney transplant recipients.", 
                "<br>", 
-               "Data were obtained from 96 patients, DOT ranging from 6 to 3983", 
+               "Data were obtained from 96 Thai patients, DOT ranging from 6 to 3983", 
                "<br>",
-               "All study participants received triple immunosuppressive drug regimen")
+               "All study participants received tacrolimus twice daily as part of their triple immunosuppressive drug regimen")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of HB and DOT is recommend to reflect physiological changes in clearance and volume of distribution")
