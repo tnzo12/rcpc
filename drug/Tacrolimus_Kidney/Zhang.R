@@ -1,12 +1,17 @@
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Tacrolimus po model for adult kidney transplant recipients"
+des_intro <-  c("Tacrolimus po model for adult kidney transplant recipients.", 
+                "<br>", 
+                "Data were obtained from 83 Chinese patients, median value of POD was 9 days", 
+                "<br>",
+                "All study participants received tacrolimus twice daily starting from the third day after operation, as part of their triple immunosuppressive drug regimen")
+
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of CYP3A5, HCT and POD is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
-des_cov <- "CYP3A5_33, CYP3A5_13, CYP3A5_11, HCT, POD" # Strict 
+des_cov <- "CYP3A5, HCT, POD" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -15,10 +20,10 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5_33", "CYP3A5_13","CYP3A5_11","HCT", "POD")
-mod_lcov = NULL # covariates with dropdown list
-mod_lcov_value <- NULL
-mod_cov_abbr <- c("1 for mutation, otherwise no", "1 for mutation, otherwise no", "1 for mutation, otherwise no", "hematocrit", "post operational days")
+mod_cov <- c("CYP3A5","HCT", "POD")
+mod_lcov = c("CYP3A5") # covariates with dropdown list
+mod_lcov_value <- list(CYP3A5 = c('*1/*1'=0, '*1/*3'=0, '*3/*3'=1))
+mod_cov_abbr <- c("*3 indicates genetic polymorphism in the introm 3(6986G>A), and *1 indicates wild-type", "hematocrit(%)", "post operational days")
 
 mod_route <- c("PO")
 
@@ -65,7 +70,7 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.5
       
-      cl <- exp(theta1 + eta1) * exp(-0.0526 * (83/POD)) * (39.1/HCT)**0.548 * exp(-0.32**(CYP3A5_33) + 1**(CYP3A5_13+CYP3A5_11)) 
+      cl <- exp(theta1 + eta1) * exp(-0.0526 * (83/POD)) * (39.1/HCT)**0.548 * exp(-0.32*CYP3A5) 
       v <- exp(theta2 + eta2) * POD**0.842
       ke = cl/v
       
