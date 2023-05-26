@@ -18,7 +18,7 @@ mod_obs_abbr <- c("Serum drug concentration")
 mod_cov <- c("POD", "TBIL", "SCr", "HW", "BW")
 mod_lcov <- NULL
 mod_lcov_value <- NULL
-mod_cov_abbr <- c("Postoperative days", "Total bilirubin", "Serum creatinine", "Grafted hepatic weight", "Bodyweight(kg)")
+mod_cov_abbr <- c("Postoperative days", "Total bilirubin(mg/dL)", "Serum creatinine(mg/dL)", "Grafted hepatic weight(g)", "Bodyweight(kg)")
 
 mod_route <- c("PO")
 
