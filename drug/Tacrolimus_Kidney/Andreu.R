@@ -11,7 +11,7 @@ des_notes <- c("- measurement time is recommended to be matched with the first d
                "<br>",
                "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center, peri"
-des_cov <- "CYP3A5, CYP3A4, AGE" # Strict 
+des_cov <- "CYP3A5, CYP3A4, AGE, DOT" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)","<br>",
@@ -21,10 +21,11 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("CYP3A5", "CYP3A4", "AGE")
+mod_cov <- c("CYP3A5", "CYP3A4", "AGE", "DOT")
 mod_lcov = c("CYP3A5", "CYP3A4") # covariates with dropdown list
 mod_lcov_value <- list(CYP3A5 = c('*1/*1'=0, '*1/*3'=1, '*3/*3'=2),
                        CYP3A4 = c('*1/*1'=0, '*1/*22'=1, '*22/*22'=1))
+mod_cov_abbr <- c("*1 indicates wild type, *3 indicates genetic polymorphism", "*1 indicates wild type, *22 indicates genetic polymorphism", "Age(y)", "Days of therapy")
 
 mod_route <- c("PO")
 
@@ -92,10 +93,12 @@ pk_color <- '#FF6666'
       if(CYP3A4 == 1 & CYP3A5 == 2 & AGE < 63){tvcl <- theta3}
       if(CYP3A4 == 1 & CYP3A5 == 2 & AGE >= 63){tvcl <- theta3-0.205}
       
-      cl <- exp(tvcl+eta1+eta2)
+      cl <- exp(tvcl+eta1)
+      if(DOT>=84) {cl <- exp(tvcl+eta1+eta2)}
+     
       
       v1 <- exp(theta4)
-      v2 <- exp(th)
+      v2 <- exp(theta5)
       ke = cl/v1
       k12 = q/v1 
       k21 = q/v2
@@ -106,7 +109,7 @@ pk_color <- '#FF6666'
       alag(depot) = exp(theta8)
       
       cp = center / v1
-      cp ~ prop(theta5)
+      cp ~ prop(theta9)
     })
   }
   
