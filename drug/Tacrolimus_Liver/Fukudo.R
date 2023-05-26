@@ -48,7 +48,7 @@ pk_color <- '#FF6666'
   
   
   # Inter-individually Variable parameters ----------------------------
-  est_eta <-c('unitless' = 'F',
+  est_eta <-c('unitless' = 'ba',
               'L/h'='cl',
               'L/kg'='v'
   )
@@ -63,7 +63,7 @@ pk_color <- '#FF6666'
       # thetas
       theta1 <- c(0.743)      # CL (L/h)
       theta2 <- c(1.64)       # volume of distribution (L/kg)
-      theta3 <- c(0.0732)     # F
+      theta3 <- c(0.0732)     # BA (bioavailability)
       theta4 <- c(0.792)      # theta on HF
       theta5 <- c(0.0157)     # theta on POD (L/h/day)
       theta6 <- c(0.810)      # theta on RF
@@ -85,12 +85,13 @@ pk_color <- '#FF6666'
       tv <- theta2 * BW
       v <- tv * exp(eta3)
       
-      tF <- theta3
+      tba <- theta3
+      ba <- tba * exp(eta1)
       
       ke = cl/v
       
       d/dt(center) = - ke * center
-      f(center) = tF * exp(eta1)
+      f(center) = ba
       
       cp = center / v
       cp ~ add(theta7)
