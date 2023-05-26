@@ -20,7 +20,7 @@ mod_lcov_value <- list(
   CYPR = c('*3*3'=1,'others'=0),
   CYPD = c('*3*3'=1,'others'=0)
 )
-mod_cov_abbr <- c("Total bilirubin(umol/L)", "Recipient CYP3A5", "Donor CYP3A5" )
+mod_cov_abbr <- c("Total bilirubin(umol/L)", "Recipient CYP3A5 *3 Genotype", "Donor CYP3A5 *3 Genotype" )
 
 mod_route <- c("PO")
 

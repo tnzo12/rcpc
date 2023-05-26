@@ -95,14 +95,17 @@ pk_color <- '#FF6666'
       tvp <- theta4
       vp <- tvp * exp(eta4)
       
+      kcp <- q/vc
+      kpc <- q/vp
+      
       tka <- theta5
       ka <-tka * exp(eta5)
      
       ke = cl/vc
       
       d/dt(depot) = - ka * depot
-      d/dt(cent) = ka * depot - ke * cent - q * cent + q * per
-      d/dt(per) = q * cent - q * per
+      d/dt(cent) = ka * depot - ke * cent - kcp * cent + kpc * per
+      d/dt(per) = kcp * cent - kpc * per
       
       alag(depot) = theta6
       
