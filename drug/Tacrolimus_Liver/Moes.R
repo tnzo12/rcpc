@@ -6,7 +6,7 @@ des_notes <- c("- Clearance depends on CYP3A5 genotype of donors and recipients"
                "<br>",
                "- Note2")
 des_comp <- "depot, trans1, trans2, trans3, cent, per"
-des_cov <- "DCYP3A5, RCYP3A5" # Strict 
+des_cov <- "CYPD, CYPR" # Strict 
 
 des_params <- c("- Cl: clearance (tacrolimus)","<br>",
                 "- V: Volume of distritubtion(tacrolimus)","<br>")
@@ -14,11 +14,11 @@ des_params <- c("- Cl: clearance (tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("DCYP3A5", "RCYP3A5")
-mod_lcov <- c("DCYP3A5", "RCYP3A5")
+mod_cov <- c("CYPD", "CYPR")
+mod_lcov <- c("CYPD", "CYPR")
 mod_lcov_value <- list(
-  DCYP3A5= c('*1 carrier'=1,'*1 non-carrier'=0),
-  RCYP3A5= c('*1 carrier'=1,'*1 non-carrier'=0)
+  CYPD= c('*1 carrier'=1,'*1 non-carrier'=0),
+  CYPR= c('*1 carrier'=1,'*1 non-carrier'=0)
 )
 mod_cov_abbr <- c("Donor's CYP3A5*1 Genotype", "Recipient's CYP3A5*1 Genotype" )
 
@@ -51,7 +51,7 @@ pk_color <- '#FF6666'
   
   # Inter-individually Variable parameters ----------------------------
   est_eta <-c('L/h'='cl',
-              'L'='v',
+              'L'='vc',
               '1/h' = 'ka'
   )
   
@@ -80,22 +80,23 @@ pk_color <- '#FF6666'
     })
     
     model({
-     
-      if (DCYP3A5==0 & RCYP3A5==0) {tcl <- theta1}
-      if (DCYP3A5==1 & RCYP3A5==0) {tcl <- theta2}
-      if (DCYP3A5==0 & RCYP3A5==1) {tcl <- theta2}
-      if (DCYP3A5==1 & RCYP3A5==1) {tcl <- theta3}
+      
+      tcl <- theta2
+      if (CYPD==0 & CYPR==0) {tcl <- theta1}
+      if (CYPD==1 & CYPR==1) {tcl <- theta3}
       
       cl <- tcl * exp(eta1)
       
-      vc <- theta4 * exp(eta2)
-      
-      vp <- theta5
-      
       ka <- theta7 * exp(eta3)
       
+      vc <- theta4 * exp(eta2)
+      vp <- theta5
+      
       q <- theta6
-    
+      
+      kcp <- q/vc
+      kpc <- q/vp
+      
       ke = cl/vc
       
       d/dt(depot) = - ka * depot
@@ -103,9 +104,8 @@ pk_color <- '#FF6666'
       d/dt(trans1) = ka * depot - ka * trans1
       d/dt(trans2) = ka * trans1 - ka * trans2
       d/dt(trans3) = ka * trans2 - ka * trans3
-      d/dt(cent) = ka * trans3 - ke * cent - q * cent + q * per
-      d/dt(per) = q * cent - q * per
-      
+      d/dt(cent) = ka * trans3 - ke * cent - kcp * cent + kpc * per
+      d/dt(per) = kcp * cent - kpc * per
       
       
       cp = cent / vc
