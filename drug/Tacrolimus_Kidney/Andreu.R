@@ -79,19 +79,14 @@ pk_color <- '#FF6666'
     model({
       ka <- exp(theta7)
       q <- exp(theta6)
-    
-      if(CYP3A4 == 0 & CYP3A5 == 0 & AGE < 63){tvcl <- theta1}
-      if(CYP3A4 == 0 & CYP3A5 == 0 & AGE >= 63){tvcl <- theta1-0.205}
-      if(CYP3A4 == 0 & CYP3A5 == 1 & AGE < 63){tvcl <- theta1}
-      if(CYP3A4 == 0 & CYP3A5 == 1 & AGE >= 63){tvcl <- theta1-0.205}
-      if(CYP3A4 == 0 & CYP3A5 == 2 & AGE < 63){tvcl <- theta2}
-      if(CYP3A4 == 0 & CYP3A5 == 2 & AGE >= 63){tvcl <- theta2-0.205}
-      if(CYP3A4 == 1 & CYP3A5 == 0 & AGE < 63){tvcl <- theta2}
-      if(CYP3A4 == 1 & CYP3A5 == 0 & AGE >= 63){tvcl <- theta2-0.205}
-      if(CYP3A4 == 1 & CYP3A5 == 1 & AGE < 63){tvcl <- theta2}
-      if(CYP3A4 == 1 & CYP3A5 == 1 & AGE >= 63){tvcl <- theta2-0.205}
-      if(CYP3A4 == 1 & CYP3A5 == 2 & AGE < 63){tvcl <- theta3}
-      if(CYP3A4 == 1 & CYP3A5 == 2 & AGE >= 63){tvcl <- theta3-0.205}
+      
+      tvcl1 <- theta2
+      if(CYP3A4 == 0 & CYP3A5 == 0){tvcl1 <- theta1}
+      if(CYP3A4 == 0 & CYP3A5 == 1){tvcl1 <- theta1}
+      if(CYP3A4 == 1 & CYP3A5 == 2){tvcl1 <- theta3}
+      
+      tvcl <- tvcl1
+      if (AGE>=63) {tvcl <- tvcl1 - 0.205}
       
       cl <- exp(tvcl+eta1)
       if(DOT>=84) {cl <- exp(tvcl+eta1+eta2)}
