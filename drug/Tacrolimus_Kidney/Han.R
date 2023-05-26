@@ -4,7 +4,7 @@
 des_intro <- c("Tacrolimus po model for adult kidney transplant recipients", "<br>", "This model was built based on de novo Korean patients", "<br>", " Follow-up period lasted for 400 days after transplantation.")
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
-               "- Detailed tracking of DOT and AST is recommend to reflect physiological changes in clearance and volume of distribution")
+               "- Detailed tracking of CYP3A5, HCT, POD and WT is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
 des_cov <- "CYP3A5, HCT, POD, WT" # Strict 
 
