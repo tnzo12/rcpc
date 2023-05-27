@@ -24,7 +24,7 @@ mod_obs_abbr <- c("Serum drug concentration")
 mod_cov <- c("CYP3A5", "CYP3A4", "AGE", "DOT")
 mod_lcov = c("CYP3A5", "CYP3A4") # covariates with dropdown list
 mod_lcov_value <- list(CYP3A5 = c('*1/*1'=0, '*1/*3'=1, '*3/*3'=2),
-                       CYP3A4 = c('*1/*1'=0, '*1/*22'=1, '*22/*22'=1))
+                       CYP3A4 = c('*1/*1'=0, '*1/*22'=2, '*22/*22'=2))
 mod_cov_abbr <- c("*1 indicates wild type, *3 indicates genetic polymorphism", "*1 indicates wild type, *22 indicates genetic polymorphism", "Age(y)", "Days of therapy")
 
 mod_route <- c("PO")
@@ -80,13 +80,19 @@ pk_color <- '#FF6666'
       ka <- exp(theta7)
       q <- exp(theta6)
       
-      tvcl1 <- theta2
-      if(CYP3A4 == 0 & CYP3A5 == 0){tvcl1 <- theta1}
-      if(CYP3A4 == 0 & CYP3A5 == 1){tvcl1 <- theta1}
-      if(CYP3A4 == 1 & CYP3A5 == 2){tvcl1 <- theta3}
+      AGEF <- 0
+      if(AGE >= 63){AGEF <- 1}
       
-      tvcl <- tvcl1
-      if (AGE>=63) {tvcl <- tvcl1 - 0.205}
+      tvcl <- theta1 - 0.205*AGEF
+      if(CYP3A4 + CYP3A5 >= 2){tvcl <- theta2 - 0.205*AGEF}
+      if(CYP3A4 + CYP3A5 == 4){tvcl <- theta3 - 0.205*AGEF}
+      
+      #if(CYP3A4 == 0 & CYP3A5 == 0){tvcl <- theta1 - 0.205*AGEF} #0
+      #if(CYP3A4 == 0 & CYP3A5 == 1){tvcl <- theta1 - 0.205*AGEF} #1
+      #if(CYP3A4 == 0 & CYP3A5 == 2){tvcl <- theta2 - 0.205*AGEF} #2
+      #if(CYP3A4 == 2 & CYP3A5 == 0){tvcl <- theta2 - 0.205*AGEF} #2
+      #if(CYP3A4 == 2 & CYP3A5 == 1){tvcl <- theta2 - 0.205*AGEF} #3
+      #if(CYP3A4 == 2 & CYP3A5 == 2){tvcl <- theta3 - 0.205*AGEF} #4
       
       cl <- exp(tvcl+eta1)
       if(DOT>=84) {cl <- exp(tvcl+eta1+eta2)}
