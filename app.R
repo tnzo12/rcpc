@@ -94,7 +94,6 @@ css <- "
   background-color: #673800;
 }
 
-
 .htContextMenu table tbody tr td {
   background: #7a8188;
   color: white;
@@ -478,10 +477,10 @@ ui <- dashboardPage(
         width=7,
         box(
           width=12,
-          title = "Model Scheme",
+          title = "Model Search",
           elevation = 2,
           HTML("<span style='color:grey'><i>
-          *Scheme of the selected model
+          *Can find the best model with given information. Any time-varying covariates should be put in the most representitative value among the patient's observations
                </i></span>"),
           
           uiOutput(outputId = "scheme")
