@@ -65,8 +65,8 @@ pk_color <- '#FF6666'
       
       theta1 <- log(20.7)       # CL/F
       theta2 <- log(234)       # Vc/F
-      theta3 <- log(1319)       # Vp/F
-      theta4 <- log(0.183)      # tlag
+      theta3 <- c(1319)       # Vp/F
+      theta4 <- c(0.183)      # tlag
       theta5 <- c(0.0332)          # Proportional error 
       
       eta1 ~ c(0.1762)          # CL/F
@@ -78,7 +78,7 @@ pk_color <- '#FF6666'
       q <- 70.7
       cl <- exp(theta1 + eta1) * (AGE/50)**-0.78 * 2.03**CYP3A5 * 1.4**MRP2
       v1 <- exp(theta2 + eta2)
-      v2 <- exp(theta3)
+      v2 <- theta3
       ke = cl/v1
       k12 = q/v1 
       k21 = q/v2
@@ -86,7 +86,7 @@ pk_color <- '#FF6666'
       d/dt(depot) = - ka * depot
       d/dt(center) = ka * depot - k12 * center + k21 * peri - ke * center
       d/dt(peri) = k12 * center - k21 * peri
-      alag(depot) = exp(theta4) * (2.6**diabetes)
+      alag(depot) = theta4 * (2.6**diabetes)
       
       cp = center / v1
       cp ~ prop(theta5)

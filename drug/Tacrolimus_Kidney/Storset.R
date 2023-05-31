@@ -60,7 +60,7 @@ pk_color <- '#FF6666'
       theta1 <- log(1.01)       # Ka
       theta2 <- log(811)        # Cl
       theta3 <- log(6290)       # Vc/F
-      theta4 <- log(32100)      # Vp/F
+      theta4 <- 32100      # Vp/F
       theta5 <- log(1200)       # Q
       theta6 <- log(1)          # BA
       theta7 <- c(0.0219)          # Proportional error 
@@ -77,7 +77,7 @@ pk_color <- '#FF6666'
       ka <- exp(theta1+eta6)
       cl <- exp(theta2+eta1) * (FFM/60)**0.75 * (1.3 * CYP3A5 + (1-CYP3A5))
       v1 <- exp(theta3+eta2)
-      v2 <- exp(theta4)
+      v2 <- theta4
       q <- exp(theta5+eta3)
       
       ke = cl/v1
