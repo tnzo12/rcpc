@@ -50,7 +50,7 @@ sd_eta <- sqrt(c(0.16)) # put sd^2 value in this vector
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(12.92)        # CL/F
+    theta1 <- c(log(12.92))        # CL/F
     theta2 <- c(-0.00158)     # POD
     theta3 <- c(0.4282)       # CYP3A5 effect on clearance
     
@@ -65,9 +65,10 @@ f <- function() {
   model({
     ka <- theta5
     
-    TVCL <- theta1 * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
-    cl <- TVCL * exp(eta1)
+    # TVCL <- theta1 * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
+    cl <- exp(theta1 + eta1) * ((WT/13.2)**0.75) * exp(theta2 * POD) * exp(CYP3A5 * (theta3))
     v <- theta6
+    # cl <- theta1 * exp(eta1)
     
     #ke <- theta1 / theta2
     ke = cl/v

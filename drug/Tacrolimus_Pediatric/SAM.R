@@ -54,9 +54,9 @@ sd_eta <- sqrt(c(0.112,0.109,0.0579)) # put sd^2 value in this vector
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(1.46)         # CL
-    theta2 <- c(39.1)         # V
-    theta3 <- c(0.197)        # F (Bioavailability)
+    theta1 <- c(log(1.46))         # CL
+    theta2 <- c(log(39.1))         # V
+    theta3 <- c(log(0.197))        # F (Bioavailability)
     
     theta4 <- c(0.339)        # Age on CL
     theta5 <- c(4.57)         # BSA on V
@@ -71,20 +71,22 @@ f <- function() {
     eta3 ~ c(0.0579)          # F
   })
   model({
-    TVCL <- theta1 * (1 + theta4 * (AGE-2.25))
-    TVV <- theta2 * (1 + theta5 * (BSA-0.49))
-    WTVF <- theta3 * (1 + theta6 * (WT-11.4))
+    # TVCL <- theta1 * (1 + theta4 * (AGE-2.25))
+    # TVV <- theta2 * (1 + theta5 * (BSA-0.49))
+    # WTVF <- theta3 * (1 + theta6 * (WT-11.4))
+    
+    
     if (BIL>=200) {
-      TVF <- WTVF * (theta7) 
+      BA <- exp(theta3 + eta3)  * (1 + theta6 * (WT-11.4)) * (theta7) 
     }
     else{
       
-      TVF <- WTVF 
+      BA <- exp(theta3 + eta3) * (1 + theta6 * (WT-11.4)) 
     }
     
-    cl <- TVCL * (1 + eta1)
-    v <- TVV  * (1 + eta2)
-    BA <- TVF * (1 + eta3)
+    cl <- exp(theta1 + eta1) * (1 + theta4 * (AGE-2.25))
+    v <- exp(theta2 + eta2) * (1 + theta5 * (BSA-0.49))
+    # BA <- TVF * (1 + eta3)
     
     #ke <- theta1 / theta2
     ke = cl/v

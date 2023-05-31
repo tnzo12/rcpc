@@ -1,5 +1,10 @@
 # Tacrolimus population pk model
 
+
+
+# Mu-referencing 못한 parameter : cl (덧셈 포함)
+
+
 # PK model description ----------------------------------------------
 des_intro <- "Tacrolimus Oral model for all children under 18 years who received a de novo liver transplantation"
 des_notes <- c("Tac doses and biological data were collected daily from the day of transplantation up until day 14 and then at day 30, 60 and 90.",
@@ -64,7 +69,7 @@ f <- function() {
     # theta4 <- c(6)       # T50
     # theta5 <- c(10.9)    # CL-HEP (Hepatic clearance)
     theta6 <- c(4.5)     # Ka
-    theta7 <- c(79)      # V1 (Central)
+    theta7 <- c(log(79))      # V1 (Central)
     theta8 <- c(100)     # V2 (Peripheral)
     theta9 <- c(105)     # Q
     theta10 <- c(0.46)   # WT on V1
@@ -78,7 +83,7 @@ f <- function() {
     theta17 <- c(2.38)   # Additive error
     
     eta1 ~ c(0.27)         # CL(total)
-    eta2 ~ c(0.36)         # V1
+    eta2 ~ c(0.35)         # V1
 
     
   })
@@ -86,8 +91,8 @@ f <- function() {
     TVCL <- (theta1 * (theta2 ** RCYP3A5) * (theta3 ** RABCB1)) + (theta6 * ((AGE / 13)**theta11) * (theta12 ** DCYP3A5) * (theta13 ** DCYP3A4) * (theta14 ** FZLDe) * (theta15 ** FZLDne) * (POD/144 + POD))
     cl <- TVCL * exp(eta1)
     
-    TVV1 <- theta7 * ((WT/10)**theta10)
-    v1 <- TVV1 * exp(eta2)
+    # TVV1 <- theta7 * ((WT/10)**theta10)
+    v1 <- exp(theta7 + eta2) * ((WT/10)**theta10)
     v2 <- theta8        # FIX
     q <- theta9 
     ka <- theta6

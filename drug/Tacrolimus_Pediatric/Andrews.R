@@ -1,4 +1,9 @@
 # Tacrolimus population pk model
+# mu-referencing 안되는 parameter :  cl / 그래프 모양 이상하긴 함
+
+
+
+
 
 # PK model description ----------------------------------------------
 des_intro <- "A total of 722 blood samples were collected from 46 children treated with tacrolimus over the first 6 weeks after renal transplantation. patients aged younger than 18 years, who received a 476 L. M. Andrews et al.kidney from an ABO compatible living or a deceased donor, and were treated with tacrolimus as part of their initial immune suppressive regimen. All clinical values were collected from 24 h before transplantation until 6 weeks post-transplantation. All children received an initial tacrolimus dose of 0.3 mg/kg/day divided into two doses every 12 h"
@@ -62,11 +67,11 @@ sd_eta <- sqrt(c(1.23, 0.25, 0.624, 0.7, 0.18, 0.34)) # put sd^2 value in this v
 f <- function() {
   ini({
     theta1 <- c(0.37)    # Tlag
-    theta2 <- c(0.56)    # Ka
-    theta3 <- c(50.5)    # CL/F
-    theta4 <- c(206)     # V1/F
+    theta2 <- c(log(0.56))    # Ka
+    theta3 <- c(log(50.5))    # CL/F
+    theta4 <- c(log(206))     # V1/F
     theta5 <- c(114)     # Q/F
-    theta6 <- c(1520)    # V2/F
+    theta6 <- c(log(1520))    # V2/F
     #theta7 <- c(1.04)    # CYP3A5 effect on CL (3*/3*)
     #theta8 <- c(1.98)    # CYP3A5 effect on CL (others)
     theta9 <- c(0.19)    # eGFR
@@ -85,25 +90,23 @@ f <- function() {
   })
   model({
     tlag <- theta1
-    TVKA <- theta2
-    ka <- TVKA * exp(eta1)
     
-    WHTVCL <- theta3 * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) # CYP3A5가 *3/*3이면 0, 아니면 1 / DL이 living이면 1, 아니면 0
-    if (HCT<0.3) {
-      TVCL <- WHTVCL * ((HCT/0.3)**theta11) 
+    ka <- exp(theta2 + eta1)
+    
+    # WHTVCL <- theta3 * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) # CYP3A5가 *3/*3이면 0, 아니면 1 / DL이 living이면 1, 아니면 0
+    #if (HCT<0.3) { TVCL <- WHTVCL * ((HCT/0.3)**theta11) }
+    # else{TVCL <- WHTVCL}
+    
+    if (HCT < 0.3) {
+      cl <- exp(theta3 + eta2) * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) * ((HCT/0.3)**theta11)
     }
-    else{
-      
-      TVCL <- WHTVCL 
+    else {
+      cl <- exp(theta3 + eta2) * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9)
     }
+    # cl <- TVCL * exp(eta2)
     
-        
-    cl <- TVCL * exp(eta2)
-    TVV1 <- theta4
-    v1 <- TVV1 * exp(eta3)
-    
-    TVV2 <- theta6
-    v2 <- TVV2 * exp(eta4)
+    v1 <- exp(theta4 + eta3)
+    v2 <- exp(theta6 + eta4)
     q <- theta5 
     
     

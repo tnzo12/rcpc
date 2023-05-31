@@ -51,10 +51,10 @@ sd_eta <- sqrt(c(0.6,0.51,0.77,0.28)) # put sd^2 value in this vector
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(1.37)         # CL/Fmax
-    theta2 <- c(0.148)        # CL/F50
+    theta1 <- c(log(1.37))         # CL/Fmax
+    theta2 <- c(log(0.148))        # CL/F50
     theta3 <- c(5.38)         # Tcl/F50
-    theta4 <- c(17.2)         # V/F
+    theta4 <- c(log(17.2))         # V/F
     theta5 <- c(1.63)         # Additive error
     theta6 <- c(0.292)        # Proportional error
     
@@ -70,16 +70,16 @@ f <- function() {
     ka <- theta7
     
     
-    TVCLFmax <- theta1
-    TVCLF0 <- theta2
+    # TVCLFmax <- theta1
+    # TVCLF0 <- theta2
     TVTCL <- theta3
-    TVV <- theta4 * WT
+    # TVV <- theta4 * WT
     
-    CLFmax <- TVCLFmax * exp(eta1)
-    CLF0 <- TVCLF0 * exp(eta2)
+    CLFmax <- exp(theta1 + eta1)
+    CLF0 <- exp(theta2 + eta2)
     
     cl <- (CLF0 + (((CLFmax * (POD**theta8))) / ((TVTCL ** theta8) + (POD**theta8)))) * (WT**0.75)
-    v <- TVV  * exp(eta3)
+    v <- exp(theta4 + eta3) * WT
     
     #ke <- theta1 / theta2
     ke = cl/v

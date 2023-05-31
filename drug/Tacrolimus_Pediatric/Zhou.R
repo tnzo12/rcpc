@@ -49,13 +49,13 @@ sd_eta <- sqrt(c(1.09,0.5,0.34)) # put sd^2 value in this vector
 # Model file for estimation -----------------------------------------
 f <- function() {
   ini({
-    theta1 <- c(1100)          # V/F
-    theta2 <- c(30.6)          # CL/F
+    theta1 <- c(log(1100))          # V/F
+    theta2 <- c(log(30.6))          # CL/F
     theta3 <- c(1.66)          # CYP3A5
     theta4 <- c(22.1)          # Exponential error
     
     theta5 <- c(0.872)         # Lag-time
-    theta6 <- c(8.34)          # Ka
+    theta6 <- c(log(8.34))          # Ka
     
     eta1 ~ c(1.09)              # Ka
     eta2 ~ c(0.5)             # V/F
@@ -66,10 +66,14 @@ f <- function() {
     TVKA <- theta6
     TVV <- theta1 * (WT/70)
     TVCL <- theta2 * ((WT/70)**0.75) * (theta3**CYP3A5)
+  
+    #cl <- TVCL + exp(eta3)
+    #v <- TVV + exp(eta2)
+    #ka <- TVKA + exp(eta1)
     
-    cl <- TVCL * exp(eta2)
-    v <- TVV  * exp(eta3)
-    ka <- TVKA * exp(eta1)
+    cl <- exp(theta2 + eta3) * ((WT/70)**0.75) * (theta3**CYP3A5)
+    v <- exp(theta1 + eta2) * (WT/70)
+    ka <- exp(theta6 + eta1)
 
     #ke <- theta1 / theta2
     ke = cl/v
