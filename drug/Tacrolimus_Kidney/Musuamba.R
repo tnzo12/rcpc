@@ -56,11 +56,11 @@ pk_color <- '#FF6666'
   # Model file for estimation -----------------------------------------
   f <- function() {
     ini({
-      theta1 <- c(log(0.45))       # ka
-      theta2 <- c(16.3)            # Cl
-      theta3 <- c(log(86.4))       # Vc
-      theta4 <- c(log(1115))       # Vp
-      theta5 <- c(log(0.1))        # Tlag
+      theta1 <- log(0.45)       # ka
+      theta2 <- c(16.3)           # Cl
+      theta3 <- log(86.4)       # Vc
+      theta4 <- log(1115)       # Vp
+      theta5 <- log(0.1)        # Tlag
       theta6 <- c(0.88)            # Additive error
       theta7 <- c(0.0167)          # Proportional error
       
@@ -72,7 +72,6 @@ pk_color <- '#FF6666'
       
     })
     model({
-      
       ka <- exp(theta1 + eta1)
       cl <- (theta2 + (20.6*HCT/21) + 15.4**CYP3A5 + 7.6**ABCB1) * exp(eta2)
       q <- 58.2
@@ -92,3 +91,4 @@ pk_color <- '#FF6666'
       cp ~ add(theta6) + prop(theta7)
     })
   }
+  

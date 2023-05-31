@@ -65,11 +65,11 @@ pk_color <- '#FF6666'
   f <- function() {
     ini({
       
-      theta1 <- c(log(19.7))       # CL/F
-      theta2 <- c(log(234))        # Vc/F
-      theta3 <- c(log(403))        # Vp/F
-      theta4 <- c(log(52.6))       # Q
-      theta5 <- c(log(4.21))       # ka
+      theta1 <- log(19.7)       # CL/F
+      theta2 <- log(234)        # Vc/F
+      theta3 <- log(403)        # Vp/F
+      theta4 <- log(52.6)       # Q
+      theta5 <- log(4.21)       # ka
       theta6 <- c(0.0080)          # Proportional error 
       
       eta1 ~ c(0.1283)          # CL/F

@@ -61,7 +61,7 @@ f <- function() {
     theta1 <- c(23.6)       # CL/F
     theta2 <- c(31.9)       # DOT on CL/F
     theta3 <- c(76.7)       # AST on CL/F
-    theta4 <- c(log(1070))  # V/F
+    theta4 <- log(1070)  # V/F
     theta5 <- c(3.7)        # Additive error error
     
     eta1 ~ c(0.16245)         # CL/F
