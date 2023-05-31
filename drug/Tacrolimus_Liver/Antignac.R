@@ -60,9 +60,9 @@ pk_color <- '#FF6666'
   f <- function(){
     ini({
       # thetas
-      theta1 <- c(36)            # CLmax (L/h)
-      theta2 <- c(1870)          # V (L)
-      theta3 <- c(6.3)           # TCL50 (day)
+      theta1 <- log(36)          # CLmax (L/h)
+      theta2 <- log(1870)        # V (L)
+      theta3 <- log(6.3)         # TCL50 (day)
       theta4 <- c(4.9)           # sigmoidicity coefficient
       theta5 <- c(0.28)          # theta on AST
       theta6 <- c(0.64)          # theta on Albumin
@@ -70,8 +70,8 @@ pk_color <- '#FF6666'
       
       # ETAs
       eta1 + eta3 ~ c(0.174,
-                      0.1064, 0.2152)       # IIV CL/Fmax
-      eta2 ~ c(0.1046)                    # IIV TCL50
+                      0.1064, 0.2152)       # IIV CL/Fmax, r(CL,V), and V/F
+      eta2 ~ c(0.1046)                      # IIV TCL50
       
       
       
@@ -80,16 +80,13 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.48   #fixed
       
-      tclmax <- theta1 * (ALB / 38)**theta6
-      clmax <- tclmax * exp(eta1)
+      clmax <- exp(theta1 + eta1) * (ALB / 38)**theta6 
       
-      ttcl50 <- theta3 * (AST / 38)**theta5
-      tcl50 <- ttcl50 * exp(eta2)
+      tcl50 <- exp(theta3 + eta2) * (AST/ 38)**theta5
       
       cl <- (clmax * POD**theta4) / (tcl50**theta4 + POD**theta4)
       
-      tv <- theta2
-      v <- tv * exp(eta3)
+      v <- exp(theta2 + eta3)
       
       ke = cl/v
       

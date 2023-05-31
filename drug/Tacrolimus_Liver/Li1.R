@@ -60,7 +60,7 @@ pk_color <- '#FF6666'
     ini({
       # thetas
       theta1 <- c(22.1)            # CL/F (L/h)
-      theta2 <- c(653)             # Vc/F (L)
+      theta2 <- log(653)           # Vc/F (L)
       theta3 <- c(2.17)            # TBIL
       theta4 <- c(2.83)            # add error
       
@@ -80,8 +80,7 @@ pk_color <- '#FF6666'
       tcl <- theta1 - theta3 * TBIL 
       cl <- tcl * exp(eta1)
       
-      tv <- theta2
-      v <- tv * exp(eta2)
+      v <- exp(theta2 + eta2)
       
       ke = cl/v
       

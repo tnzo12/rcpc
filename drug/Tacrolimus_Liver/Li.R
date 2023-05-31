@@ -63,7 +63,7 @@ pk_color <- '#FF6666'
     ini({
       # thetas
       theta1 <- c(15.9)            # CL/F (L/h)
-      theta2 <- c(620)             # Vc/F (L)
+      theta2 <- log(620)           # Vc/F (L)
       theta3 <- c(1.88)            # TBIL
       theta4 <- c(7.65)            # CYPD
       theta5 <- c(7)               # CYPR
@@ -88,8 +88,7 @@ pk_color <- '#FF6666'
       tcl <- theta1 - theta3 * TBIL + theta4 * (1-CYPD) + theta5 * (1-CYPR)
       cl <- tcl * exp(eta1)
       
-      tv <- theta2
-      v <- tv * exp(eta2)
+      v <- exp(theta2 + eta2)
       
       ke = cl/v
       

@@ -61,7 +61,7 @@ f <- function(){
     # thetas
     theta1 <- c(29.6)     # CL/F < 70
     theta2 <- c(24)     # CL/F >= 70
-    theta3 <- c(601)     # Vd/F
+    theta3 <- log(601)     # Vd/F
     theta4  <- c(3.3)  # Additive Residual Error
     
     # ETAs
@@ -75,8 +75,7 @@ f <- function(){
    if(AST>=70){tcl <- theta2 } else { tcl <- theta1 } 
    cl <- tcl * exp(eta1)
    
-   tv <- theta3 * (BW/72.1)
-   v <- tv * exp(eta2)
+   v <- exp(theta3 + eta2) * (BW/72.1)
    
    ke = cl/v
    

@@ -62,8 +62,8 @@ pk_color <- '#FF6666'
     ini({
       # thetas
       theta1 <- c(0.743)      # CL (L/h)
-      theta2 <- c(1.64)       # volume of distribution (L/kg)
-      theta3 <- c(0.0732)     # BA (bioavailability)
+      theta2 <- log(1.64)     # V (L/kg)
+      theta3 <- log(0.0732)   # BA (bioavailability)
       theta4 <- c(0.792)      # theta on HF
       theta5 <- c(0.0157)     # theta on POD (L/h/day)
       theta6 <- c(0.810)      # theta on RF
@@ -82,11 +82,9 @@ pk_color <- '#FF6666'
       tcl <- (theta1 + theta5 * POD) * theta4^HF *theta6^RF * HW/600
       cl <- tcl * exp(eta2)
       
-      tv <- theta2 * BW
-      v <- tv * exp(eta3)
+      v <- exp(theta2 +eta3) * BW 
       
-      tba <- theta3
-      ba <- tba * exp(eta1)
+      ba <- exp (theta3 + eta1)
       
       ke = cl/v
       

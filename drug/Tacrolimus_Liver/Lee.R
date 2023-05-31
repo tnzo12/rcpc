@@ -60,7 +60,7 @@ pk_color <- '#FF6666'
     ini({
       # thetas
       theta1 <- c(0.36)          # CL/F (L/kg/hr)
-      theta2 <- c(568)           # V/F (L)
+      theta2 <- log(568)         # V/F (L)
       theta3 <- c(2.01)          # Factor for LPOD on CL/F
       theta4 <- c(-0.23)         # Power for TBL level >1.2 mg/dL
       theta5 <- c(0.49)          # Factor for EPOD on CL/F
@@ -87,8 +87,7 @@ pk_color <- '#FF6666'
       tcl <- (theta1 + (theta3/POD)*L) * ((TBIL**TBILF)**theta4) * (theta5**PODF) * (theta6**INRF) * (theta7**GRWRF) * BW
       cl <- tcl * exp(eta1)
       
-      tv <- theta2
-      v <- tv * exp(eta2)
+      v <- exp (theta2 + eta2)
       
       
       ke = cl/v

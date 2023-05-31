@@ -63,10 +63,10 @@ pk_color <- '#FF6666'
     ini({
       # thetas
       theta1 <- c(32.8)           # CL/F (L/h)
-      theta2 <- c(22.7)           # Vc/F (L)
-      theta3 <- c(76.3)           # Q/F (L/h)
-      theta4 <- c(916)            # Vp/F (L)
-      theta5 <- c(0.419)          # Ka (1/h)
+      theta2 <- log(22.7)           # Vc/F (L)
+      theta3 <- log(76.3)           # Q/F (L/h)
+      theta4 <- log(916)            # Vp/F (L)
+      theta5 <- log(0.419)          # Ka (1/h)
       theta6 <- c(0.404)          # ALAG1 (h)
       theta7 <- c(0.562)          # CL subpop
       theta8 <- c(-0.0237)        # CL ALT
@@ -86,20 +86,16 @@ pk_color <- '#FF6666'
       tcl <- theta1 * theta7 * exp(ALT*theta8/40)
       cl <- tcl * exp(eta1)
       
-      tvc <- theta2
-      vc <- tvc * exp(eta2)
+      vc <- exp(theta2 + eta2)
       
-      tq <- theta3
-      q <- tq * exp(eta3)
+      q <- exp(theta3 + eta3)
       
-      tvp <- theta4
-      vp <- tvp * exp(eta4)
+      vp <- exp(theta4 + eta4)
       
       kcp <- q/vc
       kpc <- q/vp
       
-      tka <- theta5
-      ka <-tka * exp(eta5)
+      ka <- exp(theta5 + eta5)
      
       ke = cl/vc
       

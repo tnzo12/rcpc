@@ -66,10 +66,10 @@ pk_color <- '#FF6666'
       theta1 <- c(4.21)            # CL if both R and D noncarrier
       theta2 <- c(5.60)            # CL if either one is carrier
       theta3 <- c(7.20)            # CL if both R and D carrier
-      theta4 <- c(88.3)            # Vc
+      theta4 <- log(88.3)          # Vc
       theta5 <- c(145)             # vp
       theta6 <- c(14)              # Q
-      theta7 <- c(3.76)            # Ka
+      theta7 <- log(3.76)          # Ka
       theta8 <- c(0.13)            # prop RE
       
       
@@ -87,9 +87,9 @@ pk_color <- '#FF6666'
       
       cl <- tcl * exp(eta1)
       
-      ka <- theta7 * exp(eta3)
+      ka <- exp(theta7 + eta3)
       
-      vc <- theta4 * exp(eta2)
+      vc <- exp(theta4 + eta2)
       vp <- theta5
       
       q <- theta6
