@@ -67,7 +67,7 @@ pk_color <- '#FF6666'
       
       theta1 <- log(19.7)       # CL/F
       theta2 <- log(234)        # Vc/F
-      theta3 <- log(403)        # Vp/F
+      theta3 <- c(403)        # Vp/F
       theta4 <- log(52.6)       # Q
       theta5 <- log(4.21)       # ka
       theta6 <- c(0.0080)          # Proportional error 
@@ -82,7 +82,7 @@ pk_color <- '#FF6666'
 
       cl <- exp(theta1 + eta1) * CYP3A5
       v1 <- exp(theta2 + eta2) * (WT/85.9)
-      v2 <- exp(theta3)
+      v2 <- theta3
       ke = cl/v1
       
       q <- exp(theta4 + eta3)

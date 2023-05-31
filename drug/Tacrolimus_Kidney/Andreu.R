@@ -62,14 +62,14 @@ pk_color <- '#FF6666'
   f <- function() {
     ini({
       
-      theta1 <- c(log(20.5))       # CL/F_EM
-      theta2 <- c(log(12.5))       # CL/F_IM
-      theta3 <- c(log(9.1))        # CL/F_PM
-      theta4 <- c(log(5.02))       # Vc/F
-      theta5 <- c(log(526))        # Vp/F
-      theta6 <- c(log(4.2))        # Q
-      theta7 <- c(log(0.183))      # Ka
-      theta8 <- c(log(0.243))      # Tlag
+      theta1 <- c(20.5)       # CL/F_EM
+      theta2 <- c(12.5)       # CL/F_IM
+      theta3 <- c(9.1)        # CL/F_PM
+      theta4 <- c(5.02)       # Vc/F
+      theta5 <- c(526)        # Vp/F
+      theta6 <- c(4.2)        # Q
+      theta7 <- c(0.183)      # Ka
+      theta8 <- c(0.243)      # Tlag
       theta9 <- c(0.0606)          # Proportional error 
       
       eta1 ~ c(0.0744)          # CL/F_IIV
@@ -77,8 +77,8 @@ pk_color <- '#FF6666'
     })
     
     model({
-      ka <- exp(theta7)
-      q <- exp(theta6)
+      ka <- theta7
+      q <- theta6
       
       AGEF <- 0
       if(AGE >= 63){AGEF <- 1}
@@ -94,12 +94,12 @@ pk_color <- '#FF6666'
       #if(CYP3A4 == 2 & CYP3A5 == 1){tvcl <- theta2 - 0.205*AGEF} #3
       #if(CYP3A4 == 2 & CYP3A5 == 2){tvcl <- theta3 - 0.205*AGEF} #4
       
-      cl <- exp(tvcl+eta1)
-      if(DOT>=84) {cl <- exp(tvcl+eta1+eta2)}
+      cl <- tvcl * exp(eta1)
+      if(DOT>=84) {cl <- tvcl * exp(eta1+eta2)}
      
       
-      v1 <- exp(theta4)
-      v2 <- exp(theta5)
+      v1 <- theta4
+      v2 <- theta5
       ke = cl/v1
       k12 = q/v1 
       k21 = q/v2
@@ -107,7 +107,7 @@ pk_color <- '#FF6666'
       d/dt(depot) = - ka * depot
       d/dt(center) = ka * depot - k12 * center + k21 * peri - ke * center
       d/dt(peri) = k12 * center - k21 * peri
-      alag(depot) = exp(theta8)
+      alag(depot) = theta8
       
       cp = center / v1
       cp ~ prop(theta9)
