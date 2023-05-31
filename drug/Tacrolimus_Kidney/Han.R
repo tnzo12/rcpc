@@ -54,8 +54,8 @@ pk_color <- '#FF6666'
   # Model file for estimation -----------------------------------------
   f <- function() {
     ini({
-      theta1 <- c(log(22.9))       # CL/F
-      theta2 <- c(log(716))        # V/F
+      theta1 <- log(22.9)       # CL/F
+      theta2 <- log(716)        # V/F
       theta3 <- c(0.1484)          # Proportional error 
       
       eta1 ~ c(0.2215)         # CL/F

@@ -1,5 +1,3 @@
-# not yet finished
-
 # Tacrolimus population pk model
 
 # PK model description ----------------------------------------------
@@ -59,12 +57,12 @@ pk_color <- '#FF6666'
   # Model file for estimation -----------------------------------------
   f <- function() {
     ini({
-      theta1 <- c(log(1.01))       # Ka
-      theta2 <- c(log(811))        # Cl
-      theta3 <- c(log(6290))       # Vc/F
-      theta4 <- c(log(32100))      # Vp/F
-      theta5 <- c(log(1200))       # Q
-      theta6 <- c(log(1))          # BA
+      theta1 <- log(1.01)       # Ka
+      theta2 <- log(811)        # Cl
+      theta3 <- log(6290)       # Vc/F
+      theta4 <- log(32100)      # Vp/F
+      theta5 <- log(1200)       # Q
+      theta6 <- log(1)          # BA
       theta7 <- c(0.0219)          # Proportional error 
       
       eta1 ~ c(0.1484)          # IIV_CL
