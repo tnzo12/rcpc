@@ -24,10 +24,10 @@ read_mod_cov <- function(drug_dir, i){
   
   source(paste0("./drug/",drug_dir[i]), local=TRUE)  
   if ( exists(quote(mod_cov), where = environment(), inherits = FALSE ) ){
-    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = mod_cov)
+    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = mod_cov, cov_val = list(mod_lcov_value))
     rm(mod_cov)
   } else {
-    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = "None")
+    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = "None", cov_val = "None")
   }
   
   return(cov_temp)
@@ -38,8 +38,8 @@ for (i in 1:length(drug_dir)){ read_mod_cov(drug_dir, i) }
 
 cov_temp <- data.table::rbindlist(cov_temp, fill=TRUE) %>%
   unnest_wider(dir, names_sep = ".") %>% 
-  select(dir.1, cov, dir.2) %>%  # exclude: extension name
-  rename(Drug = dir.1, Cov = cov, Author = dir.2) %>% 
+  select(dir.1, cov, dir.2, cov_val) %>%  # exclude: extension name
+  rename(Drug = dir.1, Cov = cov, Author = dir.2, Cov_value = cov_val) %>% 
   data.table()
 
 # UI --------------------------------------------
@@ -67,7 +67,7 @@ mods_server <- function(id, values){
       
       #drug_selection <- 'Vancomycin'
       #model <- 'Jung'
-      selected_drug <- filter(cov_temp, Drug==drug_selection) %>% select(-Drug) %>% data.frame
+      selected_drug <- filter(cov_temp, Drug==drug_selection) %>% select(-c(Drug, Cov_value)) %>% data.frame
       
       # Generate drug node
       drug_node <- unique(unlist(selected_drug))

@@ -383,78 +383,93 @@ ui <- dashboardPage(
       )
     ),
     fluidRow(
-      box(
+      column(
         width=6,
-        title = "Patient Info",
-        elevation = 2,
-        
-        HTML("<span style='color:grey'><i>
+        box(
+          width=12,
+          title = "Patient Info",
+          elevation = 2,
+          
+          HTML("<span style='color:grey'><i>
           *The information below is only used to identify patients
                </i></span>"),
-        HTML("<hr size='1px', style='color:#e0e0e0;border-style:dashed'>"), # horizental line
-        div(style="display: inline-block;vertical-align:top; width: 100%;",
-            uiOutput("IDinput")),
-        div(style="display: inline-block;vertical-align:top; width: 100%;",
-            textInput(
-              inputId = 'pat_name',
-              label = 'Patient Name',
-              value = NULL,
-            )),
-        div(style="display: inline-block;vertical-align:top; width: 100%;",
-            radioGroupButtons(
-              inputId = "SEX",
-              label = "Sex",
-              choices = c('Male','Female'),
-              justified = TRUE,
-              individual = TRUE,
-              checkIcon = list(
-                yes = tags$i(class = "fa fa-circle", 
-                             style = "color: slategray"),
-                no = tags$i(class = "fa fa-circle-o", 
-                            style = "color: slategray"))
-            )),
-        HTML("<span style='color:grey'><i>
+          HTML("<hr size='1px', style='color:#e0e0e0;border-style:dashed'>"), # horizental line
+          div(style="display: inline-block;vertical-align:top; width: 100%;",
+              uiOutput("IDinput")),
+          div(style="display: inline-block;vertical-align:top; width: 100%;",
+              textInput(
+                inputId = 'pat_name',
+                label = 'Patient Name',
+                value = NULL,
+              )),
+          div(style="display: inline-block;vertical-align:top; width: 100%;",
+              radioGroupButtons(
+                inputId = "SEX",
+                label = "Sex",
+                choices = c('Male','Female'),
+                justified = TRUE,
+                individual = TRUE,
+                checkIcon = list(
+                  yes = tags$i(class = "fa fa-circle", 
+                               style = "color: slategray"),
+                  no = tags$i(class = "fa fa-circle-o", 
+                              style = "color: slategray"))
+              )),
+          HTML("<span style='color:grey'><i>
           Necessary input values are made to be represented in combine with history table below
                </i></span>")
-        
-      ),
-      tabBox(
-        id = 'calcul_tab',
-        width=6,
-        elevation = 2,
-        type = 'tabs',
-        status = 'gray',
-        solidHeader = TRUE,
-        
-        tabPanel(
-          title = '[Calculator]',
+          
+        ),
+        box(
+          width=12,
+          title = "Notes",
+          elevation = 2,
           HTML("<span style='color:grey'><i>
-          *This tab is for various calculation related to the physical dimensions of the patient's
-              <hr size='1px', style='color:#e0e0e0;border-style:dashed'>
-          - 'Ages' tab: Calculate the age in days, weeks, hours if two dates are set <br><br>
-          - 'Weights' tab: Calculate the kinds of weight metrics <br><br>
-          - 'BSA' tab: Calculate body surface area <br><br>
-                   Not all the model requires such information and calculated values are not recommended being rounded for precise model estimation if the selected model requires<br><br>
+          *Abbreviations used in the selected model
                </i></span>"),
-        ),
-        tabPanel(
-          title = 'Ages',
-          div(style="display: inline-block;vertical-align:top; width: 45%;",
-              dateInput(inputId = "date_start", label = "Starting Date", value = Sys.Date(), format = 'mm-dd-yyyy')),
-          div(style="display: inline-block;vertical-align:top; width: 45%;",
-              dateInput(inputId = "date_end", label = "Ending Date", value = Sys.Date(), format = 'mm-dd-yyyy')),
-          htmlOutput("age_cal")
-        ),
-        tabPanel(
-          title = 'Weights'
-        ),
-        tabPanel(
-          title = 'BSA'
+          br(),br(),
+          
+          des_abbr_ui("des_abbr"),
+          des_notes_ui("des_notes")
         )
       ),
+      #tabBox(
+      #  id = 'calcul_tab',
+      #  width=6,
+      #  elevation = 2,
+      #  type = 'tabs',
+      #  status = 'gray',
+      #  solidHeader = TRUE,
+      #  
+      #  tabPanel(
+      #    title = '[Calculator]',
+      #    HTML("<span style='color:grey'><i>
+      #    *This tab is for various calculation related to the physical dimensions of the patient's
+      #        <hr size='1px', style='color:#e0e0e0;border-style:dashed'>
+      #    - 'Ages' tab: Calculate the age in days, weeks, hours if two dates are set <br><br>
+      #    - 'Weights' tab: Calculate the kinds of weight metrics <br><br>
+      #    - 'BSA' tab: Calculate body surface area <br><br>
+      #             Not all the model requires such information and calculated values are not recommended being rounded for precise model estimation if the selected model requires<br><br>
+      #         </i></span>"),
+      #  ),
+      #  tabPanel(
+      #    title = 'Ages',
+      #    div(style="display: inline-block;vertical-align:top; width: 45%;",
+      #        dateInput(inputId = "date_start", label = "Starting Date", value = Sys.Date(), format = 'mm-dd-yyyy')),
+      #    div(style="display: inline-block;vertical-align:top; width: 45%;",
+      #        dateInput(inputId = "date_end", label = "Ending Date", value = Sys.Date(), format = 'mm-dd-yyyy')),
+      #    htmlOutput("age_cal")
+      #  ),
+      #  tabPanel(
+      #    title = 'Weights'
+      #  ),
+      #  tabPanel(
+      #    title = 'BSA'
+      #  )
+      #),
       
       box(
-        width=5,
+        width=6,
         title = "Model Selection",
         elevation = 2,
         
@@ -472,36 +487,7 @@ ui <- dashboardPage(
         des_model_ui("des_model")
         #htmlOutput('des_model')
       ),
-      
-      column(
-        width=7,
-        box(
-          width=12,
-          title = "Model Search",
-          elevation = 2,
-          HTML("<span style='color:grey'><i>
-          *Can find the best model with given information. Any time-varying covariates should be put in the most representitative value among the patient's observations
-               </i></span>"),
-          
-          uiOutput(outputId = "scheme")
-          
-          
-        ),
-        box(
-          width=12,
-          title = "Notes",
-          elevation = 2,
-          HTML("<span style='color:grey'><i>
-          *Abbreviations used in the selected model
-               </i></span>"),
-          br(),br(),
-          
-          des_abbr_ui("des_abbr"),
-          des_notes_ui("des_notes")
-        )
-      ),
-      
-      
+
       box(
         width=8,
         title = "Patient History",
@@ -528,7 +514,20 @@ ui <- dashboardPage(
           - Needed covariate information about selected model will be appeared in the observation history table <br><br>
           - Covariate value doesn't needed to be in every time points, but at least a single point of covariate value should be put in somewhere
                </i></span>")
-      )
+      ),
+      
+      box(
+        width=12,
+        title = "Model Search",
+        elevation = 2,
+        HTML("<span style='color:grey'><i>
+          *Can find the best model with given information. Any time-varying covariates should be put in the most representitative value among the patient's observations
+               </i></span>")
+        
+        
+      ),
+      
+      
       
     ),
     fluidRow(
@@ -1434,16 +1433,7 @@ server <- function(input, output, session) {
   
   
   # Estimation tab ==================================================
-  
-  # model scheme rendering from website 
-  output$scheme <- renderUI({
-    mod_env() # load model's environment
-    tags$img(src = scheme_image)
-  })
-  
 
-  
-  
   output$data_arr5 <- renderTable({ values$fit.s }) # debugging table, fit results
   
   output$param_vis <- renderPlotly({
