@@ -77,13 +77,13 @@ f <- function() {
     
     
     if (BIL>=200) {
-      BA <- exp(theta3 + eta3)  * (1 + theta6 * (WT-11.4)) * (theta7) 
-    }
+    BILF <- theta7 
+    }   
     else{
-      
-      BA <- exp(theta3 + eta3) * (1 + theta6 * (WT-11.4)) 
+    BILF <- 1 
     }
     
+    BA <- exp(theta3 + eta3)  * (1 + theta6 * (WT-11.4)) * BILF
     cl <- exp(theta1 + eta1) * (1 + theta4 * (AGE-2.25))
     v <- exp(theta2 + eta2) * (1 + theta5 * (BSA-0.49))
     # BA <- TVF * (1 + eta3)

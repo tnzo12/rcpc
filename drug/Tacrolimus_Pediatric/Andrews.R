@@ -98,11 +98,16 @@ f <- function() {
     # else{TVCL <- WHTVCL}
     
     if (HCT < 0.3) {
-      cl <- exp(theta3 + eta2) * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) * ((HCT/0.3)**theta11)
+      TVHCT <- ((HCT/0.3)**theta11)
     }
     else {
-      cl <- exp(theta3 + eta2) * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9)
+      TVHCT <- 1
     }
+    
+    cl <- exp(theta3 + eta2) * ((WT/70)**0.75) * CYP3A5 * exp(theta10 * DL) * ((eGFR/69)**theta9) * TVHCT
+    
+    
+    
     # cl <- TVCL * exp(eta2)
     
     v1 <- exp(theta4 + eta3)
