@@ -25,7 +25,7 @@ mod_lcov = c("MRP2", "CYP3A5", "diabetes") # covariates with dropdown list
 mod_lcov_value <- list(MRP2=c('H2/H2'=0, 'H1/H2'=1, 'H1/H1'=1),
                        CYP3A5=c('*3/*3'=0, '*1/*3'=1, '*1/*1'=1),
                        diabetes=c('yes'=1, 'no'=0))
-mod_cov_abbr <- c("H1 is wild type and H2 is 1249G>A polymorphism", "*3 indicates 6986A>G(rs776746)", "Whether patient has diabetes")
+mod_cov_abbr <- c("H1 is wild type and H2 is 1249G>A polymorphism", "*3 indicates 6986A>G(rs776746)", "Age(years)", "Whether patient has diabetes")
 
 mod_route <- c("PO")
 
