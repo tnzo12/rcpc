@@ -19,7 +19,7 @@ mod_obs_abbr <- c("Serum drug concentration")
 mod_cov <- c("CYP3A5", "FFM", "Prednisolone", "POD")
 mod_lcov = c("CYP3A5") # covariates with dropdown list
 mod_lcov_value <- list(CYP3A5 = c('*1/*1'=1, '*1/*3'=1, '*3/*3'=0))
-mod_cov_abbr <- c("mutation", "free fat mass", "Prednisolone dose", "POD")
+mod_cov_abbr <- c("Mutation on cytochrome P450 3A5", "free fat mass(kg)", "Prednisolone dose(mg/day)", "POD")
 
 mod_route <- c("PO")
 
@@ -60,7 +60,7 @@ pk_color <- '#FF6666'
       theta1 <- log(1.01)       # Ka
       theta2 <- log(811)        # Cl
       theta3 <- log(6290)       # Vc/F
-      theta4 <- 32100      # Vp/F
+      theta4 <- c(32100)      # Vp/F
       theta5 <- log(1200)       # Q
       theta6 <- log(1)          # BA
       theta7 <- c(0.0219)          # Proportional error 

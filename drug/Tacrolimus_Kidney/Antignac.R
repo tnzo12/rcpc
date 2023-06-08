@@ -10,7 +10,7 @@ des_notes <- c("- measurement time is recommended to be matched with the first d
                "<br>",
                "- Detailed tracking of post operation days and corticosteroid dos is recommend to reflect physiological changes in clearance and volume of distribution")
 des_comp <- "depot, center"
-des_cov <- "POD, CS" # Strict 
+des_cov <- "POD, Prednisolone" # Strict 
 
 des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
                 "- Cl: clearance (Tacrolimus)")
@@ -19,10 +19,10 @@ des_params <- c("- V: volume of distritubtion (Tacrolimus)","<br>",
 mod_obs <- c("SDC") # {**should be matched with compartment order in model equation}
 mod_obs_abbr <- c("Serum drug concentration")
 
-mod_cov <- c("POD", "CS")
+mod_cov <- c("POD", "Prednisolone")
 mod_lcov = NULL # covariates with dropdown list
 mod_lcov_value <- NULL
-mod_cov_abbr <- c("Post operation days", "Dose of concominnant prednisolone(mg)")
+mod_cov_abbr <- c("Post operation days", "Dose of concominant prednisolone(mg/day)")
 
 mod_route <- c("IV", "PO")
 
@@ -72,7 +72,7 @@ pk_color <- '#FF6666'
     model({
       ka <- 4.5
 
-      if(CS>=25) {CS2 <- 1} else {CS2 <- 0}
+      if(Prednisolone>=25) {CS2 <- 1} else {CS2 <- 0}
       cl <- exp(theta1 + eta1) * (1+(POD**2.54/(POD**2.54+3.81**2.54))) * 1.575**CS2
       v <- exp(theta2 + eta2)
       ke = cl/v
