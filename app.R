@@ -415,6 +415,7 @@ ui <- dashboardPage(
                   no = tags$i(class = "fa fa-circle-o", 
                               style = "color: slategray"))
               )),
+          mods_drug("drugs"),
           HTML("<span style='color:grey'><i>
           Necessary input values are made to be represented in combine with history table below
                </i></span>")
@@ -468,24 +469,36 @@ ui <- dashboardPage(
       #  )
       #),
       
-      box(
-        width=6,
-        title = "Model Selection",
-        elevation = 2,
-        
-        mods_ui("drugs"),
-        
-        HTML("<span style='color:grey'><i>
+      tabBox(
+        tabPanel(
+          title = "Basic",
+          shiny::selectInput(
+            inputId = "model",
+            label = "Choose compartment model",
+            choices = c("1 comp." = "one.cmt",
+                        "2 comp." = "two.cmt",
+                        "3 comp." = "three.cmt"),
+            selected = "1 comp"
+          )
+        ),
+        tabPanel(
+          title = "Covariate",
+          elevation = 2,
+          
+          
+          HTML("<span style='color:grey'><i>
           [Click on a node to select model]
                </i></span>"),
+          mods_netwk("mod_netwk"),
+          
+          # Selected model
+          
+          verbatimTextOutput('drug'),
+          des_model_ui("des_model")
+          #htmlOutput('des_model')
+        ),
+        width=6
         
-        mods_ui("mod_netwk"),
-        
-        # Selected model
-        
-        verbatimTextOutput('drug'),
-        des_model_ui("des_model")
-        #htmlOutput('des_model')
       ),
 
       box(
@@ -742,7 +755,7 @@ ui <- dashboardPage(
                         actionButton(
                           label = "Calculate PTA",
                           icon = icon('sync-alt'),
-                          inputId = "pta_button",
+                          inputId = "pta_button"
                           # icon: https://fontawesome.com/icons?from=io
                         ), br(), br(),
                         sim_pta_ui("pta")
@@ -1029,6 +1042,7 @@ server <- function(input, output, session) {
   
   # model module server
   mods_server("drugs",values) # select model -> force network vis
+  mods_server("mod_netwk",values) # select model -> force network vis
   
   des_server("des_model", mod_env, values)
   des_server("des_notes", mod_env, values)
@@ -1043,25 +1057,25 @@ server <- function(input, output, session) {
   
   # model environment
   mod_env <- reactive({
+    
     drug_selection <- values$drug_selection
     model <- values$model
     
+    selected_dir <- paste0(
+      drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
+                                    pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
+    )
+    
+    drug_files <- list.files("./drug/", pattern = ".R", recursive = TRUE)
+    
     ifelse(
       # if
-      sum(paste0(
-        drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
-                                      pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
-      ) %in% list.files("./drug/", pattern = ".R", recursive = TRUE) ) == 1 # TRUE when only 1 model is returned
+      sum( selected_dir %in% drug_files ) == 1 # TRUE when only 1 model is returned
       ,
       # then
-      source(
-        paste0(
-          "./drug/",drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
-                                                  pattern = paste0(model, ".R"), recursive = TRUE) # Finding specified name
-        )
-      ),
+      source(paste0("./drug/",selected_dir)),
       # else
-      source("./default.R") # Default state (:no model loaded)  
+      source("./base/default.R") # Default state (:no model loaded)  
       
     )  
     
@@ -1162,7 +1176,7 @@ server <- function(input, output, session) {
       })
       
       output$obsh <- renderRHandsontable({ # needed observation types will appear in this table
-        obsht <- rhandsontable(values$obsh_ini, rowHeaders = NULL,stretchH = "all", overflow="visible") %>% 
+        obsht <- rhandsontable(values$obsh_ini, rowHeaders = NULL, stretchH = "all", overflow="visible") %>% 
           hot_col(col = "Hour", default = 0) %>% 
           hot_col(col = "Min", default = 0) %>% 
           hot_cols(halign = "htCenter") %>% 

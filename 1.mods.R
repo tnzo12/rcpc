@@ -42,15 +42,70 @@ cov_temp <- data.table::rbindlist(cov_temp, fill=TRUE) %>%
   rename(Drug = dir.1, Cov = cov, Author = dir.2, Cov_value = cov_val) %>% 
   data.table()
 
+
+#unicov <- cov_temp %>%
+#  filter(Drug=="Tacrolimus_Kidney") %>%
+#  pull(Cov_value) %>% unique() %>%
+#  unlist() %>% names() # get unique values of covariates
+#
+#list_unicov <- unicov %>%
+#  stringr::str_split(pattern="[.]") %>% # get unique selection list of covariates
+#  unlist() %>%
+#  matrix(nrow=length(unicov), byrow=TRUE) %>%
+#  data.frame() %>% rename(item=X1, category=X2) %>%
+#  group_by(item) %>% reframe(categories = list(category)) %>% 
+#  rowwise() %>% 
+#  mutate(categories = list(unique(categories))) %>% 
+#  ungroup() %>% 
+#  mutate(categories = stats::setNames(categories,item))
+#
+#cov_val <- cov_temp %>% filter(Drug=="Tacrolimus_Kidney") %>% pull(Cov) %>% unique()
+#
+#rt <- rhandsontable::rhandsontable(
+#  rep(NA,length(cov_val)) %>% as.numeric() %>% t() %>% data.frame() %>% setnames(cov_val)
+#) %>% 
+#  hot_table(overflow = "visible", stretchH = "all")
+#
+#for (i in list_unicov$item){
+#  rt <- rt %>% hot_col(col = i, type = "dropdown", source = list_unicov$categories[[i]] )
+#}
+#rt
+#
+#table <- rep(NA,length(cov_val)) %>% as.numeric() %>% t() %>% data.frame() %>% setnames(cov_val)
+#table$DOT <- 1
+#table$AGE <- 50
+#table$CS <- 200
+#table$APGAR <- 1
+#table$WT <- 50
+#cov_input <- table[,!is.na(table)] %>% names()
+#
+#
+#d <- cov_temp %>%
+#  group_by(Drug,Author) %>%
+#  reframe(Cov = list(Cov)) %>% 
+#  rowwise() %>% 
+#  filter(all(Cov %in% cov_input))
+#
+#g <- data.frame()
+#
+#for(i in d$Author){
+#  source(paste0("./drug/Phenobarbital/",i,".R"))
+#  fit <- nlmixr(f,dataset, est="posthoc")
+#  fitdf <- fit$objDf %>% mutate(model_of = i)
+#  g <- rbind(g,fitdf)
+#}
+
 # UI --------------------------------------------
-mods_ui <- function(id) { # ui for theta
+mods_drug <- function(id) {
   ns <- shiny::NS(id)
-  tagList(
-    shiny::uiOutput(ns("drugs")),
-    shiny::uiOutput(ns("mod_netwk"),
-                    width = '100%',
-                    height = '300px')
-  )
+  shiny::uiOutput(ns("drugs"))
+}
+mods_netwk <- function(id) { # ui for theta
+  ns <- shiny::NS(id)
+  shiny::uiOutput(ns("mod_netwk"),
+                  width = '100%',
+                  height = '300px')
+    
 } # ui function ends
 
 
@@ -126,7 +181,7 @@ mods_server <- function(id, values){
       shiny::selectInput(
         
         inputId = 'drug_selection',
-        label = 'Select drug',
+        label = 'Drug',
         choices = c(list.files("./drug/")),
         selected = values$drug_selection
         
