@@ -4,6 +4,7 @@
 # Find out more about building applications with Shiny here:
 # test - gitgit
 #    http://shiny.rstudio.com/
+
 # UI side libraries -------------------
 library(shiny)
 library(bs4Dash)
@@ -14,9 +15,9 @@ library(shinyWidgets)
 library(shinycssloaders)
 library(htmltools)
 library(plotly)
+library(ggplot2)
 
 # Server side libraries ---------------
-library(shiny)
 library(devtools)
 library(rxode2)
 library(nlmixr2)
@@ -32,14 +33,8 @@ library(reactable)
 library(formattable)
 library(kableExtra)
 library(knitr)
-library(dplyr)
 library(data.table)
 library(furrr)
-
-# Visualization
-library(networkD3)
-library(ggplot2)
-library(plotly)
 
 # Addition
 library(n1qn1)
@@ -622,12 +617,6 @@ ui <- dashboardPage(
         formattableOutput("param_table"),
         
         htmlOutput("des_params")
-      ),
-      box(
-        width=6,
-        title = "uploaded file",
-        elevation = 2,
-        tableOutput("files")
       )
       
       
@@ -1115,7 +1104,7 @@ server <- function(input, output, session) {
     
     handlerExpr = {
     mod_env() # refresh model environment when model is selected
-    values$doseh_ini <- data.frame(Date=Sys.Date(),
+    values$doseh_ini <- data.frame(Date=format(Sys.Date()),
                                Hour=0,
                                Min=0,
                                Route=mod_route,
@@ -1126,7 +1115,7 @@ server <- function(input, output, session) {
                                Steady=0,
                                stringsAsFactors = FALSE)
     
-    values$obsh_ini <- data.frame(Date=Sys.Date(),
+    values$obsh_ini <- data.frame(Date=format(Sys.Date()),
                               Hour=0,
                               Min=0,
                               Type=mod_obs,
@@ -1139,7 +1128,7 @@ server <- function(input, output, session) {
           setNames(mod_cov)
       )
     
-    values$sim_doseh_ini <- data.frame(Date=Sys.Date()+1, # add one day from history
+    values$sim_doseh_ini <- data.frame(Date=format(Sys.Date()+1), # add one day from history
                                    Hour=0,
                                    Min=0,
                                    Route=mod_route,
@@ -1378,7 +1367,7 @@ server <- function(input, output, session) {
       data.table() %>% # date labeling, data.table
       .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, # if
                                 NA, # then
-                                f_data[1,"Date"] + (hist_time + time) %/% 24)] %>% # else
+                                as.Date(f_data[1,"Date"]) + (hist_time + time) %/% 24)] %>% # else
       .[,date := format(date, "%m/%d")] %>% 
       .[time %in% dosep, dosed := 1] %>% # check where dose was given
       .[is.na(dosed), dosed := 0] %>%
