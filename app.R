@@ -464,36 +464,31 @@ ui <- dashboardPage(
       #  )
       #),
       
-      tabBox(
-        tabPanel(
-          title = "Basic",
-          shiny::selectInput(
-            inputId = "model",
-            label = "Choose compartment model",
-            choices = c("1 comp." = "one.cmt",
-                        "2 comp." = "two.cmt",
-                        "3 comp." = "three.cmt"),
-            selected = "1 comp"
-          )
-        ),
-        tabPanel(
-          title = "Covariate",
-          elevation = 2,
-          
-          
-          HTML("<span style='color:grey'><i>
+      box(
+        tabsetPanel(
+          type = "pills",
+          tabPanel(
+            title = "Basic",
+            HTML("<span style='color:grey'><i>
+          [Click on the bar to select model]
+               </i></span>"),
+            uiOutput("basic_mods")
+          ),
+          tabPanel(
+            title = "Covariate",
+            elevation = 2,
+            
+            HTML("<span style='color:grey'><i>
           [Click on a node to select model]
                </i></span>"),
-          mods_netwk("mod_netwk"),
-          
-          # Selected model
-          
-          verbatimTextOutput('drug'),
-          des_model_ui("des_model")
-          #htmlOutput('des_model')
+            mods_netwk("mod_netwk")
+          )  
         ),
-        width=6
-        
+        title = "Model selection",
+        width=6,
+        # Selected model
+        verbatimTextOutput('drug'),
+        des_model_ui("des_model")
       ),
 
       box(
@@ -1023,7 +1018,14 @@ server <- function(input, output, session) {
      step = 1
    )
  )  
- 
+ output$basic_mods <- renderUI(
+   shiny::selectInput(
+     inputId = "model",
+     label = " ",
+     choices =
+       gsub(pattern = "\\.[^.]+$", "",list.files(paste0("./base/",values$drug_selection), pattern = ".R"))
+   )
+ )
   
   
   # data management module server
@@ -1052,21 +1054,22 @@ server <- function(input, output, session) {
     
     selected_dir <- paste0(
       drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
-                                    pattern = paste0(model,".R"), recursive = TRUE) # Finding specified model name
-    )
+                                    pattern = paste0(model,".R"), recursive = TRUE)) # Finding specified model name
+    selected_dir_base <- paste0(
+      drug_selection,"/",list.files(paste0("./base/", drug_selection), # Specified drug name should be put
+                                    pattern = paste0(model,".R"), recursive = TRUE)) # Finding specified model name
     
     drug_files <- list.files("./drug/", pattern = ".R", recursive = TRUE)
+    drug_files_base <- list.files("./base/", pattern = ".R", recursive = TRUE)
     
-    ifelse(
-      # if
-      sum( selected_dir %in% drug_files ) == 1 # TRUE when only 1 model is returned
-      ,
-      # then
-      source(paste0("./drug/",selected_dir)),
-      # else
-      source("./base/default.R") # Default state (:no model loaded)  
-      
-    )  
+    source("./base/default.R") 
+    
+    if(sum( selected_dir %in% drug_files ) == 1){ # TRUE when only 1 model is returned
+      source(paste0("./drug/",selected_dir)) 
+    }
+    if(sum( selected_dir_base %in% drug_files_base ) == 1){ # TRUE when only 1 model is returned
+      source(paste0("./base/",selected_dir_base))
+    }
     
   }) # Loading model environment ends
   
@@ -1442,33 +1445,44 @@ server <- function(input, output, session) {
   output$param_vis <- renderPlotly({
     
     prm_iivs <- values$prm_iivs
-    # visual parameter diagnostic plot
-    vis_param(prm_iivs)
+    
+    if(is.null(prm_iivs)){
+      no_plot("No parameter to plot","Run model to configure")
+    }else{
+      # visual parameter diagnostic plot
+      vis_param(prm_iivs)
+    }
+    
+    
     
   })
   
   
   
   output$param_table <- renderFormattable({
-    prm_iivs <- values$prm_iivs
     
-    prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
-      unique(by="Param") %>%
-      select(-c(sim.id, Value, Z.score)) %>%
-      .[,`Change(%)` := round(Diff/Median*100,2)] # changes in percent
-    
-    # table output
-    formattable(
-      prm_iivs_tbl,
-      align = c("c"),
-      list(
-        `Change(%)` = formatter(
-          "span",
-          style = x ~ formattable::style(
-            color = ifelse(x > 0, 'MediumSeaGreen', ifelse(x < 0, 'Salmon', "gray")))
+    if(!is.null(values$prm_iivs)){
+      prm_iivs <- values$prm_iivs
+      
+      prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
+        unique(by="Param") %>%
+        select(-c(sim.id, Value, Z.score)) %>%
+        .[,`Change(%)` := round(Diff/Median*100,2)] # changes in percent
+      
+      # table output
+      formattable(
+        prm_iivs_tbl,
+        align = c("c"),
+        list(
+          `Change(%)` = formatter(
+            "span",
+            style = x ~ formattable::style(
+              color = ifelse(x > 0, 'MediumSeaGreen', ifelse(x < 0, 'Salmon', "gray")))
+          )
         )
       )
-    )
+    }
+
     
   })
   output$des_params <- renderPrint({
