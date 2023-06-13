@@ -39,7 +39,7 @@ pd_x_label <- NA
 pd_y_label <- NA
 
 # model scheme image ------------------------------------------------
-scheme_image <- "http://www.turkupetcentre.net/petanalysis/pic/pk-2cm.svg"
+scheme_image <- "three_cmt.png"
 
 
 # Compartment designation -------------------------------------------

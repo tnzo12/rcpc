@@ -472,7 +472,8 @@ ui <- dashboardPage(
             HTML("<span style='color:grey'><i>
           [Click on the bar to select model]
                </i></span>"),
-            uiOutput("basic_mods")
+            uiOutput("basic_mods"),
+            imageOutput("scheme", height = 'auto')
           ),
           tabPanel(
             title = "Covariate",
@@ -517,18 +518,18 @@ ui <- dashboardPage(
           - Needed covariate information about selected model will be appeared in the observation history table <br><br>
           - Covariate value doesn't needed to be in every time points, but at least a single point of covariate value should be put in somewhere
                </i></span>")
-      ),
+      )
       
-      box(
-        width=12,
-        title = "Model Search",
-        elevation = 2,
-        HTML("<span style='color:grey'><i>
-          *Can find the best model with given information. Any time-varying covariates should be put in the most representitative value among the patient's observations
-               </i></span>")
-        
-        
-      ),
+      #box(
+      #  width=12,
+      #  title = "Model Search",
+      #  elevation = 2,
+      #  HTML("<span style='color:grey'><i>
+      #    *Can find the best model with given information. Any time-varying covariates should be put in the most representitative value among the patient's observations
+      #         </i></span>")
+      #  
+      #  
+      #),
       
       
       
@@ -1026,7 +1027,15 @@ server <- function(input, output, session) {
        gsub(pattern = "\\.[^.]+$", "",list.files(paste0("./base/",values$drug_selection), pattern = ".R"))
    )
  )
+ 
+ output$scheme <- renderImage({
+   mod_env()
+   list(src = paste0("./base/", values$drug_selection, "/", scheme_image),
+        alt = "Selected Image",
+        width = "100%") # 이미지의 크기를 조정할 수 있습니다.
+ }, deleteFile = FALSE)
   
+ 
   
   # data management module server
   #dm_server("rt", values)
@@ -1242,7 +1251,7 @@ server <- function(input, output, session) {
       mutate(MDV = 0,
              EVID = 0,
              CMT = mod_comp[Type],
-             condi = 'est') %>% # labeling: estimation dataset
+             condi = 'est') %>% # labeling: estim2ation dataset
       mutate_at(vars(mod_cov[!mod_cov %in% mod_lcov]), as.numeric) %>% # only for covariates which is not included in listed covariate
       rename(DV = Val)
       
@@ -1464,7 +1473,10 @@ server <- function(input, output, session) {
     if(!is.null(values$prm_iivs)){
       prm_iivs <- values$prm_iivs
       
-      prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value), Median = median(Value), Diff = last(Value) - median(Value)), by=Param] %>% # last value = no iiv sim.id (of NA)
+      prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value),
+                                     Median = median(Value),
+                                     Diff = last(Value) - median(Value)),
+                               by=Param] %>% # last value = no iiv sim.id (of NA)
         unique(by="Param") %>%
         select(-c(sim.id, Value, Z.score)) %>%
         .[,`Change(%)` := round(Diff/Median*100,2)] # changes in percent
