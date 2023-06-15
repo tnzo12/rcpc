@@ -1023,8 +1023,8 @@ server <- function(input, output, session) {
    shiny::selectInput(
      inputId = "model",
      label = " ",
-     choices =
-       gsub(pattern = "\\.[^.]+$", "",list.files(paste0("./base/",values$drug_selection), pattern = ".R"))
+     choices = gsub(pattern = "\\.[^.]+$", "",list.files(paste0("./base/",values$drug_selection), pattern = ".R")),
+     selected = NULL
    )
  )
  
@@ -1111,45 +1111,50 @@ server <- function(input, output, session) {
   # Generating model specific table
   observeEvent(
     eventExpr = {
-      ifelse(is.null(input$model),TRUE,input$model) # regard TRUE when model is not selected
+      ifelse(is.null(input$model)|(values$drug_selection==input$drug_selection),TRUE,input$model) # regard TRUE when model is not selected
     },
     
     handlerExpr = {
     mod_env() # refresh model environment when model is selected
-    values$doseh_ini <- data.frame(Date=format(Sys.Date()),
-                               Hour=0,
-                               Min=0,
-                               Route=mod_route,
-                               Amt=as.numeric(NA),
-                               Dur=as.numeric(NA),
-                               Rep=as.numeric(NA),
-                               Inter=as.numeric(NA),
-                               Steady=0,
-                               stringsAsFactors = FALSE)
-    
-    values$obsh_ini <- data.frame(Date=format(Sys.Date()),
+      doseh_ini <- data.frame(Date=format(Sys.Date()),
                               Hour=0,
                               Min=0,
-                              Type=mod_obs,
-                              Val=as.numeric(NA),
-                              stringsAsFactors = FALSE) %>% 
-      dplyr::bind_cols( # add columns for covariates
-        matrix(ncol=length(mod_cov)) %>%
-          data.frame() %>%
-          mutate_all(as.character) %>% 
-          setNames(mod_cov)
-      )
+                              Route=mod_route,
+                              Amt=as.numeric(NA),
+                              Dur=as.numeric(NA),
+                              Rep=as.numeric(NA),
+                              Inter=as.numeric(NA),
+                              Steady=0,
+                              stringsAsFactors = FALSE)
+      values$doseh_ini <- doseh_ini
     
-    values$sim_doseh_ini <- data.frame(Date=format(Sys.Date()+1), # add one day from history
-                                   Hour=0,
-                                   Min=0,
-                                   Route=mod_route,
-                                   Amt=as.numeric(NA),
-                                   Dur=as.numeric(NA),
-                                   Rep=as.numeric(NA),
-                                   Inter=as.numeric(NA),
-                                   Steady=0,
-                                   stringsAsFactors = FALSE)
+      obsh_ini <- data.frame(Date=format(Sys.Date()),
+                             Hour=0,
+                             Min=0,
+                             Type=mod_obs,
+                             Val=as.numeric(NA),
+                             stringsAsFactors = FALSE)
+      if(!is.null(mod_cov)){ # if mod_cov exists
+        obsh_ini <- obsh_ini %>% dplyr::bind_cols( # add columns for covariates
+          matrix(ncol=length(mod_cov)) %>%
+            data.frame() %>%
+            mutate_all(as.character) %>% 
+            setNames(mod_cov)
+        )
+      }
+      values$obsh_ini <- obsh_ini
+      
+      sim_doseh_ini <- data.frame(Date=format(Sys.Date()+1), # add one day from history
+                                  Hour=0,
+                                  Min=0,
+                                  Route=mod_route,
+                                  Amt=as.numeric(NA),
+                                  Dur=as.numeric(NA),
+                                  Rep=as.numeric(NA),
+                                  Inter=as.numeric(NA),
+                                  Steady=0,
+                                  stringsAsFactors = FALSE)
+      values$sim_doseh_ini <- sim_doseh_ini
   })
   
   
