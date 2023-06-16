@@ -299,7 +299,7 @@ ui <- dashboardPage(
           Optimization Method for Outer Problem
                </i></span>"),
         choices = c("nlminb", "bobyqa", "lbfgsb3c", "L-BFGS-B", "mma", "lbfgsbLG", "slsqp", "Rvmmin"),
-        selected = "L-BFGS-B"
+        selected = "bobyqa"
       ),
       selectInput(
         inputId = "inner_opt",
@@ -1295,7 +1295,10 @@ server <- function(input, output, session) {
                    maxInnerIterations = input$inner_iter,
                    maxOuterIterations = input$outer_iter,
                    outerOpt = input$outer_opt,
-                   innerOpt = input$inner_opt)
+                   innerOpt = input$inner_opt,
+                   resetThetaP = 0,
+                   resetEtaP = 0,
+                   resetThetaFinalP = 0)
     )
     fit.s <- fit.s %>%
       mutate(CMT = if(is.null(fit.s$CMT)) {pk_obs} else {mod_obs[as.numeric(CMT)]} ) %>% 
