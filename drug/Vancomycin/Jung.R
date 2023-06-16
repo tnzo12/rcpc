@@ -84,9 +84,9 @@ f <- function(){
     theta16 <- fix(0.134)    # Emax
     # ETAs
     eta1 ~ fix(1.33)                     # Base
-    eta2 + eta3 ~ fix(0.194,          
+    eta2 + eta3 ~ c(0.194,          
                     -0.0159, 0.306) # Vd, Cl
-    eta4 + eta5 ~ fix(0.521,          
+    eta4 + eta5 ~ c(0.521,          
                     -0.435, 0.83)   # Emax, Kout
   })
   model({
