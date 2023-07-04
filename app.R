@@ -30,7 +30,6 @@ library(shinyjs)
 # Data management
 library(rhandsontable)
 library(reactable)
-library(formattable)
 library(kableExtra)
 library(knitr)
 library(data.table)
@@ -47,6 +46,9 @@ source("3.plot.R", local=TRUE)
 source("4.dm.R", local=TRUE)
 source("5.sim.R", local=TRUE)
 
+
+# rxode cache
+rxode2::rxCreateCache()
 
 # basic reacatable options
 options(reactable.theme = reactable::reactableTheme(
@@ -1059,27 +1061,21 @@ server <- function(input, output, session) {
   mod_env <- reactive({
     
     drug_selection <- values$drug_selection
-    model <- values$model
+    model_name <- paste0(values$model,".R")
     
-    selected_dir <- paste0(
-      drug_selection,"/",list.files(paste0("./drug/", drug_selection), # Specified drug name should be put
-                                    pattern = paste0(model,".R"), recursive = TRUE)) # Finding specified model name
-    selected_dir_base <- paste0(
-      drug_selection,"/",list.files(paste0("./base/", drug_selection), # Specified drug name should be put
-                                    pattern = paste0(model,".R"), recursive = TRUE)) # Finding specified model name
+    drug_dirs <- c( # list of folders containing model files
+      paste0("./drug/", drug_selection),
+      paste0("./base/", drug_selection)
+    )
     
-    drug_files <- list.files("./drug/", pattern = ".R", recursive = TRUE)
-    drug_files_base <- list.files("./base/", pattern = ".R", recursive = TRUE)
+    drug_fulldir <- list.files(drug_dirs, # Specified drug name should be put
+                               pattern = model_name,
+                               recursive = TRUE,
+                               full.names= TRUE)
     
-    source("./base/default.R") 
-    
-    if(sum( selected_dir %in% drug_files ) == 1){ # TRUE when only 1 model is returned
-      source(paste0("./drug/",selected_dir)) 
-    }
-    if(sum( selected_dir_base %in% drug_files_base ) == 1){ # TRUE when only 1 model is returned
-      source(paste0("./base/",selected_dir_base))
-    }
-    
+    if( length(drug_fulldir) == 1){ # model_name of NULL gives whole files
+      source(drug_fulldir) 
+    } else { source("./base/default.R") }
   }) # Loading model environment ends
   
   
@@ -1111,7 +1107,7 @@ server <- function(input, output, session) {
   # Generating model specific table
   observeEvent(
     eventExpr = {
-      ifelse(is.null(input$model)|(values$drug_selection==input$drug_selection),TRUE,input$model) # regard TRUE when model is not selected
+      ifelse(is.null(input$model),TRUE,input$model) # regard TRUE when model is not selected
     },
     
     handlerExpr = {
@@ -1520,7 +1516,7 @@ server <- function(input, output, session) {
 
   output$pk_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
-    if(is.na(pk)){ # check if there's pk designated in the model document
+    if( is.null(values$f_data) | is.na(pk) ){ # check if there's pk designated in the model document
       no_plot("No pharmacokinetic analysis supported","Explore another model to configure")
     }else{
       
@@ -1568,7 +1564,7 @@ server <- function(input, output, session) {
   
   output$pd_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
-    if(is.na(pd)){ # check if there's pd designated in the model document
+    if( is.null(values$f_data) | is.na(pd) ){ # check if there's pd designated in the model document
       no_plot("No pharmacodynamic analysis supported","Explore another model to configure")
     }else{
       
