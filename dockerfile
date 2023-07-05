@@ -33,23 +33,29 @@ RUN R -e "install.packages(c('reactable','kableExtra','data.table','furrr'), dep
 RUN R -e "install.packages('igraph', dependencies=TRUE)"
 
 # copy the app to the image
+COPY . /srv/shiny-server/
 COPY shiny-server.sh /usr/bin/shiny-server.sh
-COPY /drug /srv/shiny-server/drug
-COPY /base /srv/shiny-server/base
-COPY /temp /srv/shiny-server/temp
-COPY app.R /srv/shiny-server
-COPY 1.mods.R /srv/shiny-server
-COPY 2.des.R /srv/shiny-server
-COPY 3.plot.R /srv/shiny-server
-COPY 4.dm.R /srv/shiny-server
-COPY 5.sim.R /srv/shiny-server
+
+#COPY /drug /srv/shiny-server/drug
+#COPY /base /srv/shiny-server/base
+#COPY /temp /srv/shiny-server/temp
+#COPY app.R /srv/shiny-server
+#COPY 1.mods.R /srv/shiny-server
+#COPY 2.des.R /srv/shiny-server
+#COPY 3.plot.R /srv/shiny-server
+#COPY 4.dm.R /srv/shiny-server
+#COPY 5.sim.R /srv/shiny-server
 
 # select port
 EXPOSE 3838
 
-# allow permission
-RUN ["chmod", "+x", "/usr/bin/shiny-server.sh"]
+# print logs
 ENV SHINY_LOG_STDERR=1
+RUN ["chmod", "+x", "/usr/bin/shiny-server.sh"]
+# permission
+#RUN sed -i 's/run_as shiny;/run_as root;/g' /etc/shiny-server/shiny-server.conf
+#RUN chown -R root:root /srv/shiny-server
+RUN chown -R shiny:shiny /srv/shiny-server/temp
 
 # run app
 CMD ["/usr/bin/shiny-server.sh"]

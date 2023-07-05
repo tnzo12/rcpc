@@ -375,7 +375,9 @@ ui <- dashboardPage(
         tags$head(tags$style(HTML(css_rt))),
         reactable::reactableOutput("rt"),
         br(),
-        downloadButton("download", "Download the files")
+        downloadButton("sel_down", "Download selected", icon = icon("arrow-down")),
+        downloadButton("all_down", "Download all files", icon = icon("inbox")),
+        shiny::actionButton(inputId = "del_button", label = "Delete selected", icon = icon("remove"))
         
       )
     ),
@@ -893,6 +895,21 @@ server <- function(input, output, session) {
     
     
   })
+  # delete
+  observeEvent(input$del_button, {
+    if(file.exists(paste0(dirname(ifelse(is.null(input$upload$datapath),".",input$upload$datapath[1])),"/",input$ID,".rds")) | # system temp
+       file.exists(ifelse(is.null(values$rt),"./.rds",values$rt$rds_files[[getReactableState("rt","selected")]])) # shiny app
+    ){
+      # remove selected file
+      file.remove( values$rt$rds_files[[reactable::getReactableState("rt","selected")]] )
+      
+      showNotification("selected file deleted", type = "default")
+    } else {
+      showNotification("could not find matching ID", type = "error")
+    }
+    
+    
+  })
 
   output$files <- renderTable(input$upload)
   
@@ -902,18 +919,24 @@ server <- function(input, output, session) {
                 to = paste0(dirname(input$upload$datapath),"/",input$upload$name))
   })
   
-  # download as zip
-  output$download <- downloadHandler(
+  # download selected file
+  
+  output$sel_down <- downloadHandler(
+    filename = reactive(values$rt$rds_files[[getReactableState("rt","selected")]] %>% basename()),
+    content = function(fname){
+      file.copy(values$rt$rds_files[[getReactableState("rt","selected")]], fname)
+    }
+  )  
+  
+    
+  
+  
+  # download all files as .zip
+  output$all_down <- downloadHandler(
     filename = 'export.zip',
     content = function(fname) {
       zip_temp <- zip::zip(fname, files = unlist(values$rt$rds_files),
                            mode = "cherry-pick")
-      #zip_temp <- zip::zip(fname, files = list.files(path = abs_path_temp, pattern = "\\.rds$"),
-      #                     root = abs_path_temp)
-      #if(!is.null(input$upload$datapath)){
-      #  zip::zip_append(zip_temp, files = list.files(path = dirname(input$upload$datapath[1]), pattern = "\\.rds$"),
-      #                  root = dirname(input$upload$datapath[1]))  
-      #}
     },
     contentType = "application/zip"
   )
@@ -922,7 +945,7 @@ server <- function(input, output, session) {
   # observe event -> generate table
  observeEvent(
    eventExpr = {
-   c(input$save_button,input$load_button,input$upload)
+   c(input$save_button,input$load_button,input$upload, input$del_button)
    },
    handlerExpr = {
      # remove identical files between two temp folders
@@ -1034,7 +1057,7 @@ server <- function(input, output, session) {
    mod_env()
    list(src = paste0("./base/", values$drug_selection, "/", scheme_image),
         alt = "Selected Image",
-        width = "100%") # 이미지의 크기를 조정할 수 있습니다.
+        width = "100%") # size of the image can be adjusted
  }, deleteFile = FALSE)
   
  
