@@ -4,7 +4,8 @@ no_plot <- function(text1, text2){
     plotly::layout(xaxis = list(color = "#999999", showticklabels = FALSE),
                    yaxis = list(range = c(-1,1), color = "#999999", showticklabels = FALSE),
                    plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)",
-                   autosize = TRUE) %>% 
+                   autosize = TRUE,
+                   margin = list(l = 0, r = 0, b = 0, t = 0)) %>% 
     plotly::add_text(x=0, y=0.1, mode = 'text', text=text1, showlegend = FALSE, textfont=list(color='#999999')) %>%
     plotly::add_text(x=0, y=-0.1, mode = 'text', text=text2, showlegend = FALSE, textfont=list(color='#999999'))
 }
@@ -85,9 +86,9 @@ hm_plot <- function(res, color1, color2, xlab, ylab, zvalue){
            autosize = TRUE
     ) %>% 
     plotly::add_heatmap(data=res, x=~dose, y=~tau, z=~res[[zvalue]],
-                        showlegend=FALSE, opacity = 0.75, showscale=FALSE,
+                        showlegend=FALSE, opacity = 0.75, showscale=FALSE, hoverinfo = 'none',
                         xgap = 3.5, ygap = 3.5) %>%
-    plotly::add_text(data=res, x=~dose, y=~tau, type="scatter", name="param val.",
+    plotly::add_text(data=res, x=~dose, y=~tau, type="scatter", name=zvalue,
                      showlegend=FALSE, text=~round(res[[zvalue]],2),
                      textfont=list(color = "#FFFFFF"))
 }

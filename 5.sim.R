@@ -1,22 +1,20 @@
 # scenario based simulations
 sim_sce_ui1 <- function(id){
   ns <- shiny::NS(id)
-  plotlyOutput( ns("sce_grid1") )
+  plotlyOutput( ns("sce_grid1"), height = "230px" )
 }
 sim_sce_ui2 <- function(id){
   ns <- shiny::NS(id)
-  plotlyOutput( ns("sce_grid2") )
+  plotlyOutput( ns("sce_grid2"), height = "230px" )
 }
-
-
-#sim_conc_win <- function(id){
-#  ns <- shiny::NS(id)
-#  shiny::uiOutput(ns("conc_win"))
-#}
-#sim_auc_win <- function(id){
-#  ns <- shiny::NS(id)
-#  shiny::uiOutput(ns("auc_win"))
-#}
+sim_sce_ui3 <- function(id){
+  ns <- shiny::NS(id)
+  plotlyOutput( ns("sce_grid3"), height = "230px" )
+}
+sim_sce_ui4 <- function(id){
+  ns <- shiny::NS(id)
+  plotlyOutput( ns("sce_grid4"), height = "230px" )
+}
 
 # filtering function for pta estimation
 filvar <- function(df, filt, values){
@@ -53,6 +51,17 @@ sim_server <- function(id, mod_env, values){
       fit.s <- values$fit.s
       eta_table <- values$eta_table
       
+      
+      if( any(is.null(values$f_data), values$is_sim == FALSE) ){
+        showModal(
+          modalDialog(
+            title = "scenario-based prediction aborted",
+            "at least one dosing history for simulation is required"
+          )
+        )
+        return()
+      }
+      
       # last simulation record
       sim_lastr <- f_data %>% data.table() %>%
         setnames(., tolower(names(.))) %>%
@@ -79,7 +88,7 @@ sim_server <- function(id, mod_env, values){
           dplyr::bind_cols(eta_table)
       }
       
-      combs <- expand.grid(doser=sce_doser, tau=sce_tau)
+      combs <- expand.grid(doser=sce_doser, tau=sce_tau) # list the number of cases
       
       sce_grid <- combs %>% 
         data.table() %>% 
@@ -97,21 +106,8 @@ sim_server <- function(id, mod_env, values){
         .[,.SD[1], by=id]
       
       sce_res <- bind_cols(combs, sce_grid) %>% mutate(dose=doser*sim_lastr$amt)
+   
       
-      output$sce_grid1 <- renderPlotly({
-        subplot(
-          hm_plot(sce_res, "#17a2b8", "#DC3545", "dosing amount", "dosing interval (AUC 24)", "auc_24"),
-          hm_plot(sce_res, "#17a2b8", "#DC3545", "dosing amount", "dosing interval (AUC tau)", "auc_tau"),
-          nrows = 2, shareX = TRUE
-        )
-      })
-      output$sce_grid2 <- renderPlotly({
-        subplot(
-          hm_plot(sce_res, "#17a2b8", "#FFC107", "dosing amount", "dosing interval (Conc. peak)", "c_peak"),
-          hm_plot(sce_res, "#17a2b8", "#FFC107", "dosing amount", "dosing interval (Conc. trough)", "c_trou"),
-          nrows = 2, shareX = TRUE
-        )
-      })
       
       sce_iter <- sce_et_gen(1,sim_lastr$ii) %>% 
         select(-names(eta_table)) %>%  # get rid of the etas
@@ -131,6 +127,38 @@ sim_server <- function(id, mod_env, values){
       values$conc_type <- input$conc_type
       values$auc_win <- input$auc_win
       values$auc_type <- input$auc_type
+    })
+    
+    
+    
+    
+    output$sce_grid1 <- renderPlotly({
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
+        no_plot("AUC 24", "No simulation done or new simulation is done")
+      }else{
+        hm_plot(values$sce_res, "#17a2b8", "#DC3545", "dosing amount", "interval (AUC 24)", "auc_24")  
+      }
+    })
+    output$sce_grid2 <- renderPlotly({
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
+        no_plot("AUC tau", "No simulation done or new simulation is done")
+      }else{
+        hm_plot(values$sce_res, "#17a2b8", "#DC3545", "dosing amount", "interval (AUC tau)", "auc_tau")  
+      }
+    })
+    output$sce_grid3 <- renderPlotly({
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
+        no_plot("C peak", "No simulation done or new simulation is done")
+      }else{
+        hm_plot(values$sce_res, "#17a2b8", "#FFC107", "dosing amount", "interval (Conc. peak)", "c_peak")  
+      }
+    })
+    output$sce_grid4 <- renderPlotly({
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
+        no_plot("C trough", "No simulation done or new simulation is done")
+      }else{
+        hm_plot(values$sce_res, "#17a2b8", "#FFC107", "dosing amount", "interval (Conc. trough)", "c_trou")  
+      }
     })
     
     
@@ -176,7 +204,7 @@ sim_server <- function(id, mod_env, values){
                             sce_iter_tbl[[values$conc_type]]<=values$conc_win[2]},
                                                      "#FFC107", "#999999"))) %>% 
                             layout(
-                              xaxis = list(title = "Simulations",
+                              xaxis = list(title = values$conc_type,
                                            color = "#999999"),
                               yaxis = list(title = "Conc.",
                                            color = "#999999"),
@@ -195,7 +223,7 @@ sim_server <- function(id, mod_env, values){
                               sce_iter_tbl[[values$auc_type]]<=values$auc_win[2]},
                           "#DC3545", "#999999"))) %>% 
                             layout(
-                                xaxis = list(title = "Simulations",
+                                xaxis = list(title = values$auc_type,
                                              color = "#999999"),
                                 yaxis = list(title = "AUC",
                                              color = "#999999"),

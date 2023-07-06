@@ -196,7 +196,7 @@ cov_data <- subset(df, MDV==0) %>%
   mutate(evid = MDV,
          amt = 0) %>% dplyr::select(time, evid, any_of(mod_cov), CRPZERO)
 
-sim_lastr <- f_data %>% data.table() %>%
+sim_lastr <- df %>% data.table() %>% # f_data in application
   setnames(., tolower(names(.))) %>%
   .[!is.na(amt),] %>% 
   .[condi=='sim',] %>%
@@ -222,6 +222,10 @@ sce_et_gen <- function(doser, tau){
 }
 
 combs <- expand.grid(doser=sce_doser, tau=sce_tau)
+
+exam <- combs %>%
+  data.table() %>% 
+  .[, result := sce_et_gen(doser,tau), by=1:nrow(.)]
 
 sce_grid <- combs %>% 
   data.table() %>% 

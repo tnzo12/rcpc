@@ -470,6 +470,7 @@ ui <- dashboardPage(
       
       box(
         tabsetPanel(
+          id = "modtype",
           type = "pills",
           tabPanel(
             title = "Basic",
@@ -705,7 +706,7 @@ ui <- dashboardPage(
           shiny::column(width=6,
                         shiny::checkboxGroupInput("sce_doser", label="dosing ratio",
                                                   choices= c(0.125, .25, .5, .75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5),
-                                                  selected=c(.25, .5, .75, 1, 1.25, 1.5),
+                                                  selected=c(.5, .75, 1, 1.25, 1.5),
                                                   inline=TRUE)
           ),
           shiny::column(width=6,
@@ -721,11 +722,16 @@ ui <- dashboardPage(
           inputId = "sce_button",
           # icon: https://fontawesome.com/icons?from=io
         ),
+        br(),br(),
         fluidRow(
           shiny::column(width=6,
                         sim_sce_ui1("sce_grid1")),
           shiny::column(width=6,
-                        sim_sce_ui2("sce_grid2"))
+                        sim_sce_ui2("sce_grid2")),
+          shiny::column(width=6,
+                        sim_sce_ui3("sce_grid3")),
+          shiny::column(width=6,
+                        sim_sce_ui4("sce_grid4"))
         )
             
             
@@ -826,7 +832,10 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   
   values <- shiny::reactiveValues() # reactive values storage
- 
+  
+  # initial conditions for values
+  values$is_sim <- FALSE
+  
   observeEvent(input$drug_selection, {
     values$drug_selection <-input$drug_selection # selected drug in picker
   })
@@ -838,11 +847,11 @@ server <- function(input, output, session) {
   })
   observeEvent(input$run_button, {
     values$run_button <- input$run_button
-    values$sce_doser <- input$sce_doser
-    values$sce_tau <- input$sce_tau
   })
   observeEvent(input$sce_button, {
     values$sce_button <- input$sce_button
+    values$sce_doser <- input$sce_doser
+    values$sce_tau <- input$sce_tau
   })
   observeEvent(input$pta_button, {
     values$pta_button <- input$pta_button
@@ -1056,7 +1065,7 @@ server <- function(input, output, session) {
  output$scheme <- renderImage({
    mod_env()
    list(src = paste0("./base/", values$drug_selection, "/", scheme_image),
-        alt = "Selected Image",
+        alt = "No image: Covariate model is selected",
         width = "100%") # size of the image can be adjusted
  }, deleteFile = FALSE)
   
@@ -1075,6 +1084,8 @@ server <- function(input, output, session) {
   
   sim_server("sce_grid1", mod_env, values)
   sim_server("sce_grid2", mod_env, values)
+  sim_server("sce_grid3", mod_env, values)
+  sim_server("sce_grid4", mod_env, values)
   sim_server("conc_win", mod_env, values)
   sim_server("auc_win", mod_env, values)
   sim_server("pta", mod_env, values)
@@ -1096,9 +1107,18 @@ server <- function(input, output, session) {
                                recursive = TRUE,
                                full.names= TRUE)
     
+    
+    
     if( length(drug_fulldir) == 1){ # model_name of NULL gives whole files
       source(drug_fulldir) 
     } else { source("./base/default.R") }
+    
+    if( sum(drug_fulldir %in% list.files(paste0("./drug/", drug_selection), recursive = TRUE, full.names= TRUE))==1 ){
+      updateTabsetPanel(session, "modtype", selected = "Covariate")  
+    }else{
+      updateTabsetPanel(session, "modtype", selected = "Basic")  
+    }
+    
   }) # Loading model environment ends
   
   
@@ -1186,6 +1206,7 @@ server <- function(input, output, session) {
       mod_env()  
       output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
         dosht <- rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
+          hot_col(col = "Date", type = "date") %>% 
           hot_col(col = "Hour", default = 0) %>% 
           hot_validate_numeric(col = "Hour", min = 0, max = 24) %>% 
           hot_col(col = "Min", default = 0) %>% 
@@ -1202,6 +1223,7 @@ server <- function(input, output, session) {
       
       output$obsh <- renderRHandsontable({ # needed observation types will appear in this table
         obsht <- rhandsontable(values$obsh_ini, rowHeaders = NULL, stretchH = "all", overflow="visible") %>% 
+          hot_col(col = "Date", type = "date") %>% 
           hot_col(col = "Hour", default = 0) %>% 
           hot_col(col = "Min", default = 0) %>% 
           hot_cols(halign = "htCenter") %>% 
@@ -1222,6 +1244,7 @@ server <- function(input, output, session) {
       
       output$sim_doseh <- renderRHandsontable({ # needed administration routes will appear in this table
         simt <- rhandsontable(values$sim_doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
+          hot_col(col = "Date", type = "date") %>% 
           hot_col(col = "Hour", default = 0) %>% 
           hot_col(col = "Min", default = 0) %>%
           hot_cols(halign = "htCenter") %>% 
@@ -1245,7 +1268,6 @@ server <- function(input, output, session) {
   observeEvent(input$run_button, {
     mod_env() # load model's environment
     
-    
     # Data processing method
     
     # Loading dosing history from ui input
@@ -1258,6 +1280,7 @@ server <- function(input, output, session) {
       # data processing (NONMEM-like format)
       filter(Amt != 0) %>% # get rid of the unused dosing (dosing amount of 0)
       rename(AMT = Amt, ADDL = Rep, II = Inter, SS = Steady) %>% # rename columns
+      #mutate_at("Date", format) %>% 
       mutate(MDV = 1,
              EVID = 1,
              CMT = mod_comp[Route],
@@ -1265,13 +1288,13 @@ server <- function(input, output, session) {
     
     output$dosehis <- renderTable({doseh})
     
-    
     # Loading observation history from ui input
     obsh <- hot_to_r(input$obsh) %>% 
       tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
       mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(., 0)) %>% 
       arrange(Date, Hour, Min) %>% 
       tidyr::fill(mod_cov, .direction = "downup") %>% 
+      #mutate_at("Date", format) %>% 
       mutate(MDV = 0,
              EVID = 0,
              CMT = mod_comp[Type],
@@ -1292,8 +1315,8 @@ server <- function(input, output, session) {
     f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
       arrange(Date, Hour, Min) %>% # Time ordering
       mutate(TIME = difftime(
-        paste0(Date," ",Hour,":",Min), # until
-        paste0(first(Date)," ",first(Hour),":",first(Min)), # from
+        paste0(Date %>% lubridate::parse_date_time(orders = c("%Y%m%d", "%d%m%Y"))," ",Hour,":",Min), # until
+        paste0(first(Date) %>% lubridate::parse_date_time(orders = c("%Y%m%d", "%d%m%Y"))," ",first(Hour),":",first(Min)), # from
         units='hours' # unit: hours
       ),
       ID = input$ID) %>% # Patient info
@@ -1304,6 +1327,19 @@ server <- function(input, output, session) {
     # Model designated function -----------------------------------------------
     f_data$CRPZERO <- subset(f_data, Type=="CRP")[1,"DV"] # only applied to Jung et al.
     f_data <- f_data %>% subset(select= -c(Dur, Type))
+    
+    if(all(is.na(f_data$AMT))){ # stop the process if there is no dosing history
+      
+      showModal(
+        modalDialog(
+          title = "model run aborted",
+          "at least one dosing history required"
+        )
+      )
+      return()
+      
+    }
+    
     # put any logical equations about covariates in models
     # -------------------------------------------------------------------------
     fit.s <- nlmixr(
@@ -1329,11 +1365,14 @@ server <- function(input, output, session) {
     values$doseh <- doseh
     values$obsh <- obsh
     values$f_data <- f_data
+    values$is_sim <- any(f_data$condi == "sim") # simulation is included?
+    
     # simulation end time
     values$sim_endtime <- f_data %>% filter(condi=='sim') %>%
       replace(is.na(.), 0) %>% 
       last() %>% select(TIME) %>% as.vector() # last simulation record, select time as vector
     values$fit.s <- fit.s
+    values$sce_button <- NULL # reset grid simulation
     
     # estimation table for plot =======================================
     
@@ -1493,13 +1532,13 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
   output$param_table <- renderFormattable({
     
-    if(!is.null(values$prm_iivs)){
-      prm_iivs <- values$prm_iivs
-      
+    prm_iivs <- values$prm_iivs
+    
+    if(is.null(prm_iivs)){
+      return()
+    }else{
       prm_iivs_tbl <- prm_iivs[,`:=`(Ind = last(Value),
                                      Median = median(Value),
                                      Diff = last(Value) - median(Value)),
@@ -1521,7 +1560,6 @@ server <- function(input, output, session) {
         )
       )
     }
-
     
   })
   output$des_params <- renderPrint({
@@ -1558,8 +1596,8 @@ server <- function(input, output, session) {
       # plot
       subplot(
         pkd_plot(sim_res_piiv, sim_res_noiiv, fit.s, pk_color, pk_obs, pk_x_label, pk_y_label),
-        auc_plot(sim_res_noiiv, pk_x_label, pk_y_label),
-        nrows = 2, heights = c(0.85, 0.15), shareX = TRUE
+        auc_plot(sim_res_noiiv, pk_x_label, "AUC"),
+        nrows = 2, heights = c(0.85, 0.15), shareX = TRUE, shareY = TRUE
       )
       
       
@@ -1666,88 +1704,84 @@ server <- function(input, output, session) {
   
   
   # Simulation result table
-  sim_summary <- reactive({
+  sim_summary <- observeEvent(values$sim_res_noiiv, {
     
     sim_endtime <- values$sim_endtime
-    
-    
     sim_res_noiiv <- values$sim_res_noiiv
     
-    
-    # if it is intermittent dosing (comparison between peaks)
-    sim_res_peak <- sim_res_noiiv %>%
-      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == -2, select = c(time,ipredSim)) %>% 
-      mutate(dif=c(NA,diff(ipredSim))) %>%
-      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
-      subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
-      filter(time>sim_endtime)
-    
-    
-    sim_res_trough <- sim_res_noiiv %>%
-      subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == 2, select = c(time,ipredSim)) %>% 
-      mutate(dif=c(NA,diff(ipredSim))) %>%
-      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
-      slice(2:n()) %>% 
-      slice(1:n()-1) %>% 
-      subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
-      filter(time>sim_endtime)
-    
-    
-    # if it is continuous infusion (comparison between prior point)
-    sim_res_inf <- sim_res_noiiv %>%
-      mutate(dif = c(NA,diff(sim_res_noiiv$ipredSim))) %>% 
-      mutate(dif_ratio = abs(dif / ipredSim)) %>% 
-      subset(dif_ratio<=0.001 & dif_ratio>=0) %>% 
-      filter(time>sim_endtime)
-    
-    
-    # concentration table: list[[1]]
-    sim_conc_sum <- data.frame(
-      Trough = sim_res_trough$ipredSim[1],
-      Average = ifelse(nrow(sim_res_peak)==0 & nrow(sim_res_trough)==0,
-                       sim_res_inf$ipredSim[1], # TRUE (==NA)
-                       (sim_res_trough$ipredSim[1] + sim_res_peak$ipredSim[1])/2), # FALSE (peak and trough data generated)
-      Peak = sim_res_peak$ipredSim[1]
-    )
-    
-    # time table: list[[2]]
-    sim_time_sum <- ifelse(nrow(sim_res_peak)==0 & nrow(sim_res_trough)==0,
-                           as.numeric(sim_res_inf$time[1]), # TRUE (==NA)
-                           as.numeric(( sim_res_trough$time[1] + sim_res_peak$time[1]) / 2)) # FALSE (peak and trough data generated)
-    
-    
-    
-    list(sim_conc_sum, sim_time_sum, sim_res_inf)
+      # if it is intermittent dosing (comparison between peaks)
+      sim_res_peak <- sim_res_noiiv %>%
+        subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == -2, select = c(time,ipredSim)) %>% 
+        mutate(dif=c(NA,diff(ipredSim))) %>%
+        mutate(dif_ratio = abs(dif / ipredSim)) %>% 
+        subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
+        filter(time>sim_endtime)
+      
+      sim_res_trough <- sim_res_noiiv %>%
+        subset(diff(sign(diff(c(Inf, sim_res_noiiv$ipredSim, Inf)))) == 2, select = c(time,ipredSim)) %>% 
+        mutate(dif=c(NA,diff(ipredSim))) %>%
+        mutate(dif_ratio = abs(dif / ipredSim)) %>% 
+        slice(2:n()) %>% 
+        slice(1:n()-1) %>% 
+        subset(dif_ratio<=0.01 & dif_ratio>=0) %>% 
+        filter(time>sim_endtime)
+      
+      
+      # if it is continuous infusion (comparison between prior point)
+      sim_res_inf <- sim_res_noiiv %>%
+        mutate(dif = c(NA,diff(sim_res_noiiv$ipredSim))) %>% 
+        mutate(dif_ratio = abs(dif / ipredSim)) %>% 
+        subset(dif_ratio<=0.001 & dif_ratio>=0) %>% 
+        filter(time>sim_endtime)
+      
+      # concentration table:
+      values$sim_conc_sum <- data.frame(
+        Trough = sim_res_trough$ipredSim[1],
+        Average = ifelse(nrow(sim_res_peak)==0 & nrow(sim_res_trough)==0,
+                         sim_res_inf$ipredSim[1], # TRUE (==NA)
+                         (sim_res_trough$ipredSim[1] + sim_res_peak$ipredSim[1])/2), # FALSE (peak and trough data generated)
+        Peak = sim_res_peak$ipredSim[1]
+      )
+      
+      # time table:
+      values$sim_time_sum <- ifelse(nrow(sim_res_peak)==0 & nrow(sim_res_trough)==0,
+                             as.numeric(sim_res_inf$time[1]), # TRUE (==NA)
+                             as.numeric(( sim_res_trough$time[1] + sim_res_peak$time[1]) / 2)) # FALSE (peak and trough data generated)
+  
   })
   
   
   
   
-  output$sim_conc_sum <- renderTable({ sim_summary()[[1]] })
+  output$sim_conc_sum <- renderTable({ values$sim_conc_sum })
   
   output$sim_time_sum <- renderPrint({
+    sim_time_sum <- values$sim_time_sum
+    sim_endtime <- values$sim_endtime %>% as.numeric()
+    if( !is.null(sim_time_sum) ){
+      cat(
+        '<span style="color:grey">',
+        "<i>",
+        "- Steady-state time at :",
+        "</i>",
+        '</span>',
+        (sim_time_sum),
+        '<span style="color:grey">',
+        "<i>",
+        "hours",
+        "<br>",
+        '- From simulation point :',
+        "</i>",
+        '</span>',
+        (sim_time_sum - sim_endtime),
+        '<span style="color:grey">',
+        "<i>",
+        "hours",
+        "</i>",
+        '</span>'
+      )
+    }else{ return() }
     
-    cat(
-      '<span style="color:grey">',
-      "<i>",
-      "- Steady-state time at :",
-      "</i>",
-      '</span>',
-      sim_summary()[[2]] ,
-      '<span style="color:grey">',
-      "<i>",
-      "hours",
-      "<br>",
-      '- From simulation point :',
-      "</i>",
-      '</span>',
-      sim_summary()[[2]] - values$sim_endtime ,
-      '<span style="color:grey">',
-      "<i>",
-      "hours",
-      "</i>",
-      '</span>'
-    )
     
   })
   
