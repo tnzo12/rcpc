@@ -814,7 +814,15 @@ ui <- dashboardPage(
         title = 'sim_res_iiv',
         elevation = 2,
         tableOutput("data_arr8")
+      ),
+      box(
+        width=12,
+        collapsed = TRUE,
+        title = 'sce_res',
+        elevation = 2,
+        tableOutput("data_arr9")
       )
+      
       
       
       
@@ -1332,8 +1340,10 @@ server <- function(input, output, session) {
       
       showModal(
         modalDialog(
-          title = "model run aborted",
-          "at least one dosing history required"
+          title = "Model run aborted",
+          size = "s",
+          easyClose = TRUE,
+          "At least one dosing history required"
         )
       )
       return()
@@ -1815,7 +1825,7 @@ server <- function(input, output, session) {
   output$data_arr3 <- renderTable({ sim_summary()[[3]] })
   output$data_arr7 <- renderTable({ values$sim_res_piiv }) # iiv simtab
   output$data_arr8 <- renderTable({ values$sim_res_iiv })
-  
+  output$data_arr9 <- renderTable({ values$sce_res })
   
 } # Server end
 

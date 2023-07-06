@@ -55,8 +55,10 @@ sim_server <- function(id, mod_env, values){
       if( any(is.null(values$f_data), values$is_sim == FALSE) ){
         showModal(
           modalDialog(
-            title = "scenario-based prediction aborted",
-            "at least one dosing history for simulation is required"
+            title = "Scenario-based prediction aborted",
+            size = "l",
+            easyClose = TRUE,
+            "At least one dosing history for simulation is required"
           )
         )
         return()
@@ -133,29 +135,29 @@ sim_server <- function(id, mod_env, values){
     
     
     output$sce_grid1 <- renderPlotly({
-      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
-        no_plot("AUC 24", "No simulation done or new simulation is done")
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button), is.null(values$sce_res))){
+        no_plot("AUC 24", "No simulation done or new run is done")
       }else{
         hm_plot(values$sce_res, "#17a2b8", "#DC3545", "dosing amount", "interval (AUC 24)", "auc_24")  
       }
     })
     output$sce_grid2 <- renderPlotly({
-      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
-        no_plot("AUC tau", "No simulation done or new simulation is done")
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button), is.null(values$sce_res))){
+        no_plot("AUC tau", "No simulation done or new run is done")
       }else{
         hm_plot(values$sce_res, "#17a2b8", "#DC3545", "dosing amount", "interval (AUC tau)", "auc_tau")  
       }
     })
     output$sce_grid3 <- renderPlotly({
-      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
-        no_plot("C peak", "No simulation done or new simulation is done")
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button), is.null(values$sce_res))){
+        no_plot("C peak", "No simulation done or new run is done")
       }else{
         hm_plot(values$sce_res, "#17a2b8", "#FFC107", "dosing amount", "interval (Conc. peak)", "c_peak")  
       }
     })
     output$sce_grid4 <- renderPlotly({
-      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button))){
-        no_plot("C trough", "No simulation done or new simulation is done")
+      if(any(is.null(values$f_data), values$is_sim == FALSE, is.null(values$sce_button), is.null(values$sce_res))){
+        no_plot("C trough", "No simulation done or new run is done")
       }else{
         hm_plot(values$sce_res, "#17a2b8", "#FFC107", "dosing amount", "interval (Conc. trough)", "c_trou")  
       }
@@ -186,7 +188,7 @@ sim_server <- function(id, mod_env, values){
         valueBox(paste0(filt_auc / values$vpc_opt*100,"%"), subtitle = "AUC", color="danger")
       )
       output$pta_conc <- renderbs4ValueBox(
-        valueBox(paste0(filt_conc / values$vpc_opt*100,"%"), subtitle = "Concentration", color="warning")  
+        valueBox(paste0(filt_conc / values$vpc_opt*100,"%"), subtitle = "Conc.", color="warning")  
       )
       output$pta_both <- renderbs4ValueBox(
         valueBox(paste0(filt_both / values$vpc_opt*100,"%"), subtitle = "Both", color="info")  
