@@ -1,7 +1,7 @@
 # phenobarbital population pk model
 
 # PK model description ----------------------------------------------
-des_intro <- "Phenobarbital po model for neonates and infants"
+des_intro <- "Phenobarbital IV/po model for neonates and infants"
 des_notes <- c("- measurement time is recommended to be matched with the first dose",
                "<br>",
                "- Detailed tracking of age is recommend to reflect physiological changes in clearance and volume of distribution")
