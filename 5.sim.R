@@ -42,6 +42,7 @@ sim_pta_hist_ui <- function(id){
 sim_server <- function(id, mod_env, values){
   shiny::moduleServer(id, function(input, output, session) {
     ns <- shiny::NS(id)
+    
     observeEvent(values$sce_button,{
       mod_env()
       sce_doser <- values$sce_doser %>% as.vector() %>% as.numeric()
@@ -74,7 +75,7 @@ sim_server <- function(id, mod_env, values){
       
       evt <- et(seq(from=0,to=24, by=0.5))
       
-      sce_et_gen <- function(doser, tau){
+      sce_et_gen <- function(doser, tau, ind){
         
         evt %>% 
           merge(sim_lastr %>% mutate(time=0,
@@ -90,13 +91,14 @@ sim_server <- function(id, mod_env, values){
           dplyr::bind_cols(eta_table)
       }
       
-      combs <- expand.grid(doser=sce_doser, tau=sce_tau) # list the number of cases
+      combs <- expand.grid(doser=sce_doser, tau=sce_tau) %>% mutate(id = row_number()) # list the number of cases
       
       sce_grid <- combs %>% 
-        data.table() %>% 
-        furrr::future_pmap(sce_et_gen) %>% 
-        rbindlist() %>%
-        mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>%  # dosing record
+        data.table() %>%
+        .[, sce_et_gen(doser, tau), by=id] %>%
+        #furrr::future_pmap(sce_et_gen) %>% 
+        #rbindlist() %>%
+        #mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>%  # dosing record
         rxSolve(object=fit.s, events=., nSub=1) %>%
         data.table() %>% 
         .[,ind_auc := lapply(.SD, auc, time), .SDcols="ipredSim", by=id] %>% 
@@ -107,7 +109,7 @@ sim_server <- function(id, mod_env, values){
         .[,auc_24 := auc_tau*24/sim_lastr$ii, by=id] %>% 
         .[,.SD[1], by=id]
       
-      sce_res <- bind_cols(combs, sce_grid) %>% mutate(dose=doser*sim_lastr$amt)
+      sce_res <-  left_join(combs, sce_grid, by="id") %>% mutate(dose=doser*sim_lastr$amt)
    
       
       

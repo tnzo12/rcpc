@@ -46,8 +46,7 @@ pd_y_label <- NA
   )
   
   # Inter-individually Variable parameters ----------------------------
-  est_eta <-c('L/h'='cl',
-              'L'='v')
+  est_eta <-c('L/h'='cl')
   
   sd_eta <- sqrt(c(0.278)) # put sd^2 value in this vector
   

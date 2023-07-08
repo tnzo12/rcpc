@@ -75,7 +75,7 @@ sim_res_noiiv <- sim_res_noiiv %>% data.table() %>%
   .[, ind_auc := lapply(.SD, auc, Time), .SDcols = "Estimated"] %>% 
   .[, dose_divide := cumsum(dosed == 1)] %>% 
   .[, auc_divide := cumsum(ind_auc), by=dose_divide] %>% 
-  setnafill(cols = "auc_divide", fill=0)
+  setnafill(cols = "auc_divide", fill=0) %>% 
   .[, tad := (Time - first(Time)), by=dose_divide] # time after dose
 #  .[, auc_divide := if_else(last(auc_divide)==auc_divide, auc_divide, NA), by=dose_divide]
 
@@ -221,18 +221,26 @@ sce_et_gen <- function(doser, tau){
     dplyr::bind_cols(eta_table)
 }
 
-combs <- expand.grid(doser=sce_doser, tau=sce_tau)
+combs <- expand.grid(doser=sce_doser, tau=sce_tau) %>%
+  mutate(id = row_number())
 
-exam <- combs %>%
-  data.table() %>% 
-  .[, result := sce_et_gen(doser,tau), by=1:nrow(.)]
-
+#combs_exam <- expand.grid(doser=sce_doser, tau=sce_tau) %>% mutate(id = row_number())
+#exam <- combs %>% data.table() %>% 
+#  .[, sce_et_gen(doser, tau), by=id] %>% system.time()
+#sce_grid <- combs %>% 
+#  data.table() %>% 
+#  furrr::future_pmap(sce_et_gen) %>%
+#  rbindlist() %>% 
+#  mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>% system.time()
+#exam
+#sce_grid
 sce_grid <- combs %>% 
   data.table() %>% 
-  furrr::future_pmap(sce_et_gen) %>% 
-  rbindlist() %>%
-  mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>%  # dosing record
-  rxSolve(object=fit.s, events=., nSub=1) %>%
+  .[, sce_et_gen(doser, tau), by=id] %>% 
+  #furrr::future_pmap(sce_et_gen) %>% 
+  #rbindlist() %>% 
+  #mutate(id = rep(1:nrow(combs), each=nrow(evt)+1)) %>%  # dosing record
+  rxSolve(object=fit, events=., nSub=1) %>%
   data.table() %>% 
   .[,ind_auc := lapply(.SD, auc, time), .SDcols="ipredSim", by=id] %>% 
   .[,cum_auc := cumsum(ind_auc), by=id] %>% 
@@ -242,7 +250,7 @@ sce_grid <- combs %>%
   .[,auc_24 := auc_tau*24/sim_lastr$ii, by=id] %>% 
   .[,.SD[1], by=id]
 
-sce_res <- bind_cols(combs, sce_grid) %>% mutate(dose=doser*sim_lastr$amt)
+sce_res <- left_join(combs, sce_grid, by="id") %>% mutate(dose=doser*sim_lastr$amt)
 
 plot_ly(type=NULL) %>% 
   layout(xaxis = list(tickmode = "array", tickvals = sce_doser*sim_lastr$amt, title = "dosing amount", type="category", showgrid=FALSE),

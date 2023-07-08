@@ -844,6 +844,8 @@ server <- function(input, output, session) {
   
   # initial conditions for values
   values$is_sim <- FALSE
+  values$f_data <- NULL
+  values$fit.s <- NULL
   
   observeEvent(input$drug_selection, {
     values$drug_selection <-input$drug_selection # selected drug in picker
@@ -881,10 +883,16 @@ server <- function(input, output, session) {
       object = list(
         drug_selection = values$drug_selection, # select values to save
         model = values$model,
+        
         doseh_raw = values$doseh_raw,
         sim_doseh_raw = values$sim_doseh_raw,
         obsh_raw = values$obsh_raw,
-        saved = Sys.time()),
+        saved = Sys.time(),
+        f_data = values$f_data,
+        fit.s = values$fit.s,
+        sim_res_noiiv = values$sim_res_noiiv,
+        sim_res_piiv = values$sim_res_piiv,
+        sim_endtime = values$sim_endtime),
       connection = NULL),
       file = ifelse(is.null(input$upload$datapath),
                             paste0("./temp/",input$ID,".rds"),
@@ -906,6 +914,13 @@ server <- function(input, output, session) {
       values$doseh_ini <- loaded$doseh_raw # previous table to initial state
       values$sim_doseh_ini <- loaded$sim_doseh_raw
       values$obsh_ini <- loaded$obsh_raw
+      
+      values$f_data <- loaded$f_data
+      values$fit.s <- loaded$fit.s
+      values$sim_res_noiiv <- loaded$sim_res_noiiv
+      values$sim_res_piiv <- loaded$sim_res_piiv
+      values$sim_endtime <- loaded$sim_endtime
+      
       showNotification("save file loaded", type = "message")
     } else {
       showNotification("could not find matching ID", type = "error")
@@ -1590,7 +1605,7 @@ server <- function(input, output, session) {
 
   output$pk_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
-    if( is.null(values$f_data) | is.na(pk) ){ # check if there's pk designated in the model document
+    if(  any(is.na(values$fit.s), is.null(values$fit.s), is.na(pk)) ){ # check if there's pk designated in the model document
       no_plot("No pharmacokinetic analysis supported","Explore another model to configure")
     }else{
       
@@ -1644,7 +1659,7 @@ server <- function(input, output, session) {
   
   output$pd_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
-    if( is.null(values$f_data) | is.na(pd) ){ # check if there's pd designated in the model document
+    if( any(is.na(values$fit.s), is.null(values$fit.s), is.na(pd)) ){ # check if there's pd designated in the model document
       no_plot("No pharmacodynamic analysis supported","Explore another model to configure")
     }else{
       
@@ -1675,7 +1690,7 @@ server <- function(input, output, session) {
     fit.s <- values$fit.s
     fit.s$CMT <- factor(fit.s$CMT, levels=mod_obs)
     
-    fit.s <- subset(fit.s, select = c("CMT", "TIME", "DV", "PRED", "RES", "WRES", "IPRED", "IRES", "IWRES", mod_cov))
+    fit.s <- subset(fit.s, select = c("CMT", "TIME", "DV", "PRED", "RES", "WRES", "IPRED", "IRES", "IWRES", any_of(mod_cov)))
     
     output$fit_table <- renderTable({ fit.s })
     
