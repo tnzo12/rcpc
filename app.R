@@ -892,7 +892,12 @@ server <- function(input, output, session) {
         fit.s = values$fit.s,
         sim_res_noiiv = values$sim_res_noiiv,
         sim_res_piiv = values$sim_res_piiv,
-        sim_endtime = values$sim_endtime),
+        sim_endtime = values$sim_endtime,
+        prm_iivs = values$prm_iivs,
+        is_sim = values$is_sim,
+        cov_data = values$cov_data,
+        eta_table = values$eta_table
+        ),
       connection = NULL),
       file = ifelse(is.null(input$upload$datapath),
                             paste0("./temp/",input$ID,".rds"),
@@ -920,6 +925,10 @@ server <- function(input, output, session) {
       values$sim_res_noiiv <- loaded$sim_res_noiiv
       values$sim_res_piiv <- loaded$sim_res_piiv
       values$sim_endtime <- loaded$sim_endtime
+      values$prm_iivs <- loaded$prm_iivs
+      values$is_sim <- loaded$is_sim
+      values$cov_data <- loaded$cov_data
+      values$eta_table <- loaded$eta_table
       
       showNotification("save file loaded", type = "message")
     } else {

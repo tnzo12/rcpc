@@ -46,12 +46,10 @@ mod_comp <- c(
 )
 
 # Inter-individually Variable parameters ----------------------------
-est_eta <-c('L/h'='cl',
-            'L'='v',
-            '1/h'='ka',
-            '1/h'='ke')
+est_eta <-c('L'='v',
+            'L/h'='cl')
 
-sd_eta <- sqrt(c(0.086, 0.049)) # put sd^2 value in this vector
+sd_eta <- sqrt(c(0.049, 0.086)) # put sd^2 value in this vector
 
 # Model file for estimation -----------------------------------------
 f <- function() {

@@ -48,8 +48,7 @@ mod_comp <- c(
 # Inter-individually Variable parameters ----------------------------
 est_eta <-c('L/h'='cl',
             'L'='v',
-            '1/h'='ka',
-            '1/h'='ke')
+            'unitless'='fdepot')
 
 sd_eta <- sqrt(c(0.027, 0.219, 0.144)) # put sd^2 value in this vector
 
