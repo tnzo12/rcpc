@@ -1458,7 +1458,7 @@ server <- function(input, output, session) {
       data.table() %>% # date labeling, data.table
       .[,date := dplyr::if_else((hist_time + time) %% 24 != 0, # if
                                 NA, # then
-                                as.Date(f_data[1,"Date"]) + (hist_time + time) %/% 24)] %>% # else
+                                as.Date(f_data[1,"Date"] %>% lubridate::parse_date_time(orders = c("%Y%m%d", "%d%m%Y"))) + (hist_time + time) %/% 24)] %>% # else
       .[,date := format(date, "%m/%d")] %>% 
       .[time %in% dosep, dosed := 1] %>% # check where dose was given
       .[is.na(dosed), dosed := 0] %>%
