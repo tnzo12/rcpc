@@ -577,6 +577,7 @@ ui <- dashboardPage(
         
       ),
       box(
+        id = "pdbox",
         width=12,
         title = "Pharmacodynamic Profiles",
         elevation = 2,
@@ -1263,7 +1264,9 @@ server <- function(input, output, session) {
         }
         simt
       })
-      
+    
+      values$pk <- pk
+      values$pd <- pd  
     }
   )
   
@@ -1631,7 +1634,13 @@ server <- function(input, output, session) {
   
   
   
-  
+  observeEvent( mod_env(), {
+    if (!is.na(values$pd)) {
+      bs4Dash::updateBox(id = "pdbox", action = "restore")
+    } else {
+      bs4Dash::updateBox(id = "pdbox", action = "remove")
+    }
+  })
   
   output$pd_est_plot <- renderPlotly({
     mod_env() # load selected model's environment
@@ -1817,9 +1826,6 @@ server <- function(input, output, session) {
   })
   
   
-
-  
-
   output$data_arr <- renderTable({ values$f_data })
   output$data_arr2 <- renderTable({ values$sim_res_noiiv }) # noiiv simtab
   output$data_arr3 <- renderTable({ sim_summary()[[3]] })
