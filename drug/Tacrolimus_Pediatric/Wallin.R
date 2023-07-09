@@ -29,7 +29,7 @@ pk <- "cp"
 pk_obs <- "SDC"
 pk_color <- '#FF6666'
 pk_x_label <- "Time (hours)"
-pk_y_label <- "Tacrolimus Conc. (mg/L)"
+pk_y_label <- "Tacrolimus Conc. (ug/L)"
 
 
 # model scheme image ------------------------------------------------
