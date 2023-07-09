@@ -54,7 +54,7 @@ auc_plot <- function(noiiv, xlabel, ylabel){
 # visual parameter diagnostics
 vis_param <- function(prm_iivs){
   
-  plot_ly(data = prm_iivs, x = ~Param, y = ~Z.score, color = ~Param, opacity = 0.6,
+  plot_ly(data = prm_iivs, x = ~Param, y = ~Z.score, color = ~Param, colors = "Set2", opacity = 0.6,
           type = "box", showlegend=FALSE, boxpoints = "all", jitter = 0.25, text = ~paste("<b>Value: </b>",Value),
           boxmean = TRUE) %>%
     add_markers(data = prm_iivs %>% filter(is.na(sim.id)),

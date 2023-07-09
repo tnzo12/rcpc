@@ -24,105 +24,95 @@ read_mod_cov <- function(drug_dir, i){
   
   source(paste0("./drug/",drug_dir[i]), local=TRUE)  
   if ( exists(quote(mod_cov), where = environment(), inherits = FALSE ) ){
-    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = mod_cov, cov_val = list(mod_lcov_value))
+    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = mod_cov, cov_val = list(mod_lcov_value), abbr = mod_cov_abbr)
     rm(mod_cov)
   } else {
-    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = "None", cov_val = "None")
+    cov_temp[[i]] <<- list(dir = strsplit(drug_dir[i], split="[/.]"), cov = "None", cov_val = "None", abbr = "None")
   }
   
   return(cov_temp)
 
-}
+} 
+
 cov_temp <- list() # template for drug / covariates / authors
 for (i in 1:length(drug_dir)){ read_mod_cov(drug_dir, i) }
 
 cov_temp <- data.table::rbindlist(cov_temp, fill=TRUE) %>%
   unnest_wider(dir, names_sep = ".") %>% 
-  select(dir.1, cov, dir.2, cov_val) %>%  # exclude: extension name
+  select(dir.1, cov, dir.2, cov_val, abbr) %>%  # exclude: extension name
   rename(Drug = dir.1, Cov = cov, Author = dir.2, Cov_value = cov_val) %>% 
   data.table()
 
 
-#unicov <- cov_temp %>%
-#  filter(Drug=="Tacrolimus_Kidney") %>%
-#  pull(Cov_value) %>% unique() %>%
-#  unlist() %>% names() # get unique values of covariates
-#
-#list_unicov <- unicov %>%
-#  stringr::str_split(pattern="[.]") %>% # get unique selection list of covariates
-#  unlist() %>%
-#  matrix(nrow=length(unicov), byrow=TRUE) %>%
-#  data.frame() %>% rename(item=X1, category=X2) %>%
-#  group_by(item) %>% reframe(categories = list(category)) %>% 
-#  rowwise() %>% 
-#  mutate(categories = list(unique(categories))) %>% 
-#  ungroup() %>% 
-#  mutate(categories = stats::setNames(categories,item))
-#
-#cov_val <- cov_temp %>% filter(Drug=="Tacrolimus_Kidney") %>% pull(Cov) %>% unique()
-#
-#rt <- rhandsontable::rhandsontable(
-#  rep(NA,length(cov_val)) %>% as.numeric() %>% t() %>% data.frame() %>% setnames(cov_val)
-#) %>% 
-#  hot_table(overflow = "visible", stretchH = "all")
-#
-#for (i in list_unicov$item){
-#  rt <- rt %>% hot_col(col = i, type = "dropdown", source = list_unicov$categories[[i]] )
-#}
-#rt
-#
-#table <- rep(NA,length(cov_val)) %>% as.numeric() %>% t() %>% data.frame() %>% setnames(cov_val)
-#table$DOT <- 1
-#table$AGE <- 50
-#table$CS <- 200
-#table$APGAR <- 1
-#table$WT <- 50
-#cov_input <- table[,!is.na(table)] %>% names()
-#
-#
-#d <- cov_temp %>%
-#  group_by(Drug,Author) %>%
-#  reframe(Cov = list(Cov)) %>% 
-#  rowwise() %>% 
-#  filter(all(Cov %in% cov_input))
-#
-#g <- data.frame()
-#
-#for(i in d$Author){
-#  source(paste0("./drug/Phenobarbital/",i,".R"))
-#  fit <- nlmixr(f,dataset, est="posthoc")
-#  fitdf <- fit$objDf %>% mutate(model_of = i)
-#  g <- rbind(g,fitdf)
-#}
+
 
 # UI --------------------------------------------
-mods_drug <- function(id) {
+mods_drug <- function(id){
   ns <- shiny::NS(id)
   shiny::uiOutput(ns("drugs"))
 }
-mods_netwk <- function(id) { # ui for theta
+mods_netwk <- function(id){
   ns <- shiny::NS(id)
   shiny::uiOutput(ns("mod_netwk"),
                   width = '100%',
                   height = '300px')
     
 } # ui function ends
-
+mods_covs <- function(id){
+  ns <- shiny::NS(id)
+  shiny::uiOutput(ns("cov_sel"))
+}
 
 # Server ----------------------------------------
 mods_server <- function(id, values){
   shiny::moduleServer(id, function(input, output, session) {
-    
    
+    # Covariate filteriong before network vis.
+    
+    output$cov_sel <- shiny::renderUI({
+      drug_selection <- values$drug_selection
+      cov_abbr <- cov_temp %>% filter(Drug==drug_selection) %>% group_by(Cov) %>% reframe(abbr = first(abbr))
+      
+      shinyWidgets::pickerInput(
+        inputId = "selected_cov",
+        label = "Select covariates to include",
+        choices = cov_abbr %>% pull(Cov),
+        #choices = c("HT","PNA","FFM"),
+        choicesOpt = list(
+          subtext = cov_abbr %>% pull(abbr)
+        ),
+        options = pickerOptions(
+          actionsBox = TRUE,
+          liveSearch = TRUE,
+          liveSearchPlaceholder = "Search covariate"
+        ),
+        multiple = TRUE
+      )
+    })
+    
+    
     # Network Visualization::networkD3
     selected_drug <- shiny::reactive({
       
       drug_selection <- values$drug_selection
       model <- values$model
+      selected_cov <- values$selected_cov
       
+      cov_select <- if(is.null(selected_cov)){
+        cov_temp %>% filter(Drug == drug_selection) %>% pull(Cov) %>% unique()
+      }else{
+        selected_cov
+      }
       #drug_selection <- 'Vancomycin'
       #model <- 'Jung'
-      selected_drug <- filter(cov_temp, Drug==drug_selection) %>% select(-c(Drug, Cov_value)) %>% data.frame
+      selected_drug <- filter(cov_temp, Drug==drug_selection) %>%
+        group_by(Author) %>% 
+        filter(all(Cov %in% cov_select)) %>% # if the model covariates are all included in selection
+        select(-c(Drug, Cov_value, abbr)) %>%
+        data.frame()
+      
+      #values$selected_drug <- selected_drug
+      if(selected_drug %>% nrow() == 0){ return() } # stop if no drug model was detected
       
       # Generate drug node
       drug_node <- unique(unlist(selected_drug))
@@ -142,7 +132,9 @@ mods_server <- function(id, values){
       drug_link$s_idx <- match(drug_link$source, drug_node$node) - 1
       drug_link$t_idx <- match(drug_link$target, drug_node$node) - 1
       
-      return(list(drug_node = drug_node, drug_link = drug_link))
+      return(list(drug_node = drug_node,
+                  drug_link = drug_link))
+      
     })
     
     # Visualization of drug-network
@@ -150,30 +142,34 @@ mods_server <- function(id, values){
     
     output$mod_netwk <- shiny::renderUI({
       ns <- session$ns
+      #if(values$selected_drug %>% nrow() == 0){ return() }
       networkD3::renderForceNetwork({
-        
-        forceNetwork(
-          fontSize = 16,
-          Nodes = selected_drug()$drug_node, # object: drug_node
-          Links = selected_drug()$drug_link, # object: drug_link
-          Nodesize = 'n_size',
-          radiusCalculation = JS("d.nodesize"),
-          linkWidth = 3,
-          linkDistance = 60,
-          linkColour = 'lightgrey',
-          colourScale = my_color,
-          charge = -100,
-          Source = 's_idx',
-          Target = 't_idx',
-          NodeID = 'node',
-          Group = 'group',
-          opacityNoHover = TRUE,
-          opacity = 0.8,
-          bounded = TRUE,
-          clickAction = 'Shiny.onInputChange("model",d.name)'
-        )
-        
+        if(!is.null(selected_drug())){
+          
+          forceNetwork(
+            fontSize = 16,
+            Nodes = selected_drug()$drug_node, # object: drug_node
+            Links = selected_drug()$drug_link, # object: drug_link
+            Nodesize = 'n_size',
+            radiusCalculation = JS("d.nodesize"),
+            linkWidth = 3,
+            linkDistance = 60,
+            linkColour = 'lightgrey',
+            colourScale = my_color,
+            charge = -100,
+            Source = 's_idx',
+            Target = 't_idx',
+            NodeID = 'node',
+            Group = 'group',
+            opacityNoHover = TRUE,
+            opacity = 0.8,
+            bounded = TRUE,
+            clickAction = 'Shiny.onInputChange("model",d.name)'
+          )
+          
+        }
       })
+      
     })
     
     output$drugs <- shiny::renderUI({

@@ -474,21 +474,22 @@ ui <- dashboardPage(
           type = "pills",
           tabPanel(
             title = "Basic",
-            HTML("<span style='color:grey'><i>
-          [Click on the bar to select model]
-               </i></span>"),
             uiOutput("basic_mods"),
+            HTML("<span style='color:grey'><i>
+            [Click on the bar to select model]
+               </i></span>"),
             imageOutput("scheme", height = 'auto')
           ),
           tabPanel(
             title = "Covariate",
             elevation = 2,
-            
+            mods_covs("cov_sel"),
             HTML("<span style='color:grey'><i>
-          [Click on a node to select model]
+            [Click on a node to select model]
                </i></span>"),
             mods_netwk("mod_netwk")
-          )  
+          )
+          
         ),
         title = "Model selection",
         width=6,
@@ -846,6 +847,7 @@ server <- function(input, output, session) {
   values$is_sim <- FALSE
   values$f_data <- NULL
   values$fit.s <- NULL
+  #values$selected_drug <- data.frame()
   
   observeEvent(input$drug_selection, {
     values$drug_selection <-input$drug_selection # selected drug in picker
@@ -872,6 +874,11 @@ server <- function(input, output, session) {
     values$auc_type <- input$auc_type
     values$vpc_opt <- input$vpc_opt
   })
+  observeEvent(input$selected_cov, {
+    values$selected_cov <- input$selected_cov  
+  })
+  
+  
   
   # data management (save and load)
   # save
@@ -1089,7 +1096,7 @@ server <- function(input, output, session) {
  output$basic_mods <- renderUI(
    shiny::selectInput(
      inputId = "model",
-     label = " ",
+     label = "Select compartment model",
      choices = gsub(pattern = "\\.[^.]+$", "",list.files(paste0("./base/",values$drug_selection), pattern = ".R")),
      selected = NULL
    )
@@ -1108,7 +1115,8 @@ server <- function(input, output, session) {
   #dm_server("rt", values)
   
   # model module server
-  mods_server("drugs",values) # select model -> force network vis
+  mods_server("drugs",values) # select drug
+  mods_server("cov_sel",values) # select covariate
   mods_server("mod_netwk",values) # select model -> force network vis
   
   des_server("des_model", mod_env, values)

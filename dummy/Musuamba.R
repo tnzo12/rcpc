@@ -19,7 +19,7 @@ mod_cov <- c("HCT", "CYP3A5", "ABCB1")
 mod_lcov <- c("CYP3A5", "ABCB1")
 mod_lcov_value <- list(CYP3A5 = c('*1/*1'=1, '*1/*3'=1, '*3/*3'=0),
                        ABCB1 = c('genetic polymorphism'=1, 'else'=0))
-mod_cov_abbr <- c("Haematocrit level", "*1 stands for CYP3A5 intron 36986 G>A status", "Select ABCB1 polymorphism in case of : <br> ABCB1 exon 12 1236 C>T status, <br> ABCB1 exon 21 2677 G>T/A status, <br> ABCB1 exon 26 3435 C>T status")
+mod_cov_abbr <- c("Haematocrit level", "*1 stands for CYP3A5 intron 36986 G>A status", "Select ABCB1 polymorphism: ABCB1 exon 12 1236 C>T status, ABCB1 exon 21 2677 G>T/A status, ABCB1 exon 26 3435 C>T status")
 
 mod_route <- c("PO")
 
