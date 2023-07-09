@@ -34,6 +34,11 @@ pk_color <- '#FF6666'
 pk_x_label <- "Time (hours)"
 pk_y_label <- "Tacrolimus Conc. (ug/L)"
 
+pd <- NA
+pd_obs <- NA
+pd_color <- NA
+pd_x_label <- NA
+pd_y_label <- NA
 
 # model scheme image ------------------------------------------------
 scheme_image <- "https://els-jbs-prod-cdn.jbs.elsevierhealth.com/cms/attachment/e9f4a16a-a113-4770-86c4-614b4895f30c/fx1.jpg"
