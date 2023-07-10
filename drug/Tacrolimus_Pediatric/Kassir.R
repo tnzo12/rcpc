@@ -48,9 +48,8 @@ mod_comp <- c(
 
 # Inter-individually Variable parameters ----------------------------
 est_eta <-c('L/h'='cl',
-            'L'='v1' ,
-            'L'= 'v2' ,
-            'L/h' = 'q')
+            'L'='v1',
+            'L/h'='q')
 
 sd_eta <- sqrt(c(0.52,0.98,0.73)) # put sd^2 value in this vector
 
@@ -64,12 +63,12 @@ f <- function() {
     theta3 <- c(log(30.7))      # Q2/F
     theta4 <- c(290)       # V2/F (FIX)
     theta5 <- c(0.342)     # Ka
-    theta6 <- c(0.433)     # Tlag
+    #theta6 <- c(0.433)     # Tlag
     theta7 <- c(0.2)       # Proportional error
     
     eta1 ~ c(0.52)         # CL/F
     eta2 ~ c(0.98)         # V1/F
-    eta3 ~ c(0.73)         # Q2/F
+    eta3 ~ c(0.73)         # Q/F
     
     
   })
@@ -80,7 +79,7 @@ f <- function() {
     # TVQ <- theta3 * ((WT/20)**0.75)
     
     ka <- theta5 * ((WT/20)**0.75)
-    tlag <- theta6
+    #tlag <- theta6
     
     cl <- exp(theta1 + eta1) * ((WT/20)**0.75)
     v1 <- exp(theta2 + eta2) * (WT/20)
@@ -96,7 +95,7 @@ f <- function() {
     d/dt(center) = ka * depot -k12 * center + k21 * peri - ke * center
     d/dt(peri) = k12 * center - k21 * peri
     
-    lag(depot) = exp(tlag)
+    #lag(depot) = exp(tlag)
     
     cp = center / v1
     cp ~ prop(theta7)  # Proportional error
