@@ -52,7 +52,8 @@ mod_comp <- c(
 
 # Inter-individually Variable parameters ----------------------------
 est_eta <-c('L/h'='cl',
-            'L'='v')
+            'L'='v',
+            'unitless'='BA')
 
 sd_eta <- sqrt(c(0.112,0.109,0.0579)) # put sd^2 value in this vector
 
@@ -66,7 +67,7 @@ f <- function() {
     theta4 <- c(0.339)        # Age on CL
     theta5 <- c(4.57)         # BSA on V
     theta6 <- c(0.0887)       # WT on F
-    theta7 <- c(1.61)         # BIL on F
+    #theta7 <- c(1.61)         # BIL on F
     
     theta8 <- c(4.5)          # Ka
     theta9 <- c(5.79)         # Additive error
@@ -80,13 +81,8 @@ f <- function() {
     # TVV <- theta2 * (1 + theta5 * (BSA-0.49))
     # WTVF <- theta3 * (1 + theta6 * (WT-11.4))
     
-    
-    if (BIL>=200) {
-    BILF <- theta7 
-    }   
-    else{
     BILF <- 1 
-    }
+    if (BIL>=200) {BILF <- 1.61}
     
     BA <- exp(theta3 + eta3)  * (1 + theta6 * (WT-11.4)) * BILF
     cl <- exp(theta1 + eta1) * (1 + theta4 * (AGE-2.25))
