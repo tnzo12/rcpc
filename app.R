@@ -1320,7 +1320,7 @@ server <- function(input, output, session) {
       hot_to_r(input$doseh) %>% mutate(condi='est'),
       hot_to_r(input$sim_doseh) %>% mutate(condi='sim')) %>%
       mutate_all(as.character) %>% 
-      mutate(across(everything(), na_if, "")) %>%
+      mutate(across(everything(), \(x) na_if(x, ""))) %>%
       tidyr::fill(c('Date', 'Route'), .direction = "down") %>%
       mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Rep', 'Inter', 'Steady'), ~replace_na(as.numeric(.), 0)) %>% 
       #mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
@@ -1338,7 +1338,7 @@ server <- function(input, output, session) {
     # Loading observation history from ui input
     obsh <- hot_to_r(input$obsh) %>%
       mutate_all(as.character) %>% 
-      mutate(across(everything(), na_if, "")) %>%
+      mutate(across(everything(), \(x) na_if(x, ""))) %>%
       tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
       mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(as.numeric(.), 0)) %>% 
       arrange(Date, Hour, Min) %>% 
