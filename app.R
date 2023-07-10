@@ -1266,7 +1266,9 @@ server <- function(input, output, session) {
         obsht <- rhandsontable(values$obsh_ini, rowHeaders = NULL, stretchH = "all", overflow="visible") %>% 
           hot_col(col = "Date", type = "date") %>% 
           hot_col(col = "Hour", default = 0) %>% 
+          hot_validate_numeric(col = "Hour", min = 0, max = 24) %>% 
           hot_col(col = "Min", default = 0) %>% 
+          hot_validate_numeric(col = "Min", min = 0, max = 59.999) %>% # between 0 ~ 60
           hot_cols(halign = "htCenter") %>% 
           hot_table(overflow = "visible", stretchH = "all")
         
@@ -1317,8 +1319,10 @@ server <- function(input, output, session) {
     doseh <- dplyr::bind_rows( # combining estimation/simulation dataset
       hot_to_r(input$doseh) %>% mutate(condi='est'),
       hot_to_r(input$sim_doseh) %>% mutate(condi='sim')) %>%
+      mutate_all(as.character) %>% 
+      mutate(across(everything(), na_if, "")) %>%
       tidyr::fill(c('Date', 'Route'), .direction = "down") %>%
-      mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Rep', 'Inter'), ~replace_na(., 0)) %>% 
+      mutate_at(vars('Hour', 'Min', 'Amt', 'Dur', 'Rep', 'Inter', 'Steady'), ~replace_na(as.numeric(.), 0)) %>% 
       #mutate_at(vars('Rep'), ~replace_na(., 1)) %>%
       # data processing (NONMEM-like format)
       filter(Amt != 0) %>% # get rid of the unused dosing (dosing amount of 0)
@@ -1332,11 +1336,13 @@ server <- function(input, output, session) {
     output$dosehis <- renderTable({doseh})
     
     # Loading observation history from ui input
-    obsh <- hot_to_r(input$obsh) %>% 
+    obsh <- hot_to_r(input$obsh) %>%
+      mutate_all(as.character) %>% 
+      mutate(across(everything(), na_if, "")) %>%
       tidyr::fill(c('Date', 'Type'), .direction = "down") %>%  # to fill NAs in the f_data
-      mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(., 0)) %>% 
+      mutate_at(vars('Hour', 'Min', 'Val'), ~replace_na(as.numeric(.), 0)) %>% 
       arrange(Date, Hour, Min) %>% 
-      tidyr::fill(mod_cov, .direction = "downup") %>% 
+      tidyr::fill(any_of(mod_cov), .direction = "downup") %>% 
       #mutate_at("Date", format) %>% 
       mutate(MDV = 0,
              EVID = 0,
