@@ -1640,7 +1640,7 @@ server <- function(input, output, session) {
       
       fit.s <- values$fit.s
       sim_res_noiiv <- values$sim_res_noiiv %>%
-        rename(Time = time, Estimated = pk)
+        rename(Time = time, Estimated = all_of(pk))
       sim_res_piiv <- values$sim_res_piiv %>%
         filter(variable == pk)
       
@@ -1694,7 +1694,7 @@ server <- function(input, output, session) {
       
       fit.s <- values$fit.s
       sim_res_noiiv <- values$sim_res_noiiv %>%
-        rename(Time = time, Estimated=pd)
+        rename(Time = time, Estimated = all_of(pd))
       sim_res_piiv <- values$sim_res_piiv %>%
         filter(variable == pd)
       
