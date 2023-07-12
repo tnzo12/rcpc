@@ -1246,7 +1246,7 @@ server <- function(input, output, session) {
     handlerExpr = {
       mod_env()  
       output$doseh <- renderRHandsontable({ # needed administration routes will appear in this table
-        dosht <- rhandsontable(values$doseh_ini, rowHeaders = NULL, stretchH = "all") %>% 
+        dosht <- rhandsontable(values$doseh_ini %>% select(-Steady), rowHeaders = NULL, stretchH = "all") %>% 
           hot_col(col = "Date", type = "date") %>% 
           hot_col(col = "Hour", default = 0) %>% 
           hot_validate_numeric(col = "Hour", min = 0, max = 24) %>% 
@@ -1362,10 +1362,11 @@ server <- function(input, output, session) {
     
     # fitting data = dosing history + observation history
     f_data <- dplyr::bind_rows(obsh, doseh) %>% # dosing, observation data merging
+      mutate_at("Date", lubridate::parse_date_time, order = c("%Y%m%d", "%d%m%Y")) %>% 
       arrange(Date, Hour, Min) %>% # Time ordering
       mutate(TIME = difftime(
-        paste0(Date %>% lubridate::parse_date_time(orders = c("%Y%m%d", "%d%m%Y"))," ",Hour,":",Min), # until
-        paste0(first(Date) %>% lubridate::parse_date_time(orders = c("%Y%m%d", "%d%m%Y"))," ",first(Hour),":",first(Min)), # from
+        paste0(Date," ",Hour,":",Min), # until
+        paste0(first(Date)," ",first(Hour),":",first(Min)), # from
         units='hours' # unit: hours
       ),
       ID = input$ID) %>% # Patient info
