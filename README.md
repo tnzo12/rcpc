@@ -22,7 +22,9 @@
 
 - Instruction
 1. Data for each model is stored on the platform
+
 2. Select the desired ID and click "Load" at the top to fetch the associated data.
+![image1](https://github.com/user-attachments/assets/6f3f952e-4a5a-4820-8b73-a970179239d0)
 
-
-3. 
+3. Information about the loaded patient, selected model, drug administration and observed plasma concentration could be checked
+   
